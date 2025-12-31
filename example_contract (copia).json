@@ -1,0 +1,35 @@
+{
+  "contracting_party_name": "Empresa ABC SpA",
+  "contracting_party_id": "12.345.678-9",
+  "contracting_party_address": "Calle Principal 123, Piso 5, Santiago, Chile",
+  "contractor_name": "Juan Pérez García",
+  "contractor_id": "98.765.432-1",
+  "contractor_address": "Avenida Secundaria 456, Dpto 10, Santiago, Chile",
+  "contract_object": "Prestación de servicios de consultoría en gestión empresarial, incluyendo análisis de procesos, optimización de recursos y capacitación de personal durante el período especificado en este contrato.",
+  "start_date": "01 de enero de 2025",
+  "end_date": "31 de diciembre de 2025",
+  "duration": "12 meses",
+  "services": [
+    {
+      "description": "Consultoría en Gestión Empresarial - Fase I",
+      "unit_price": "5000000",
+      "quantity": 1,
+      "total": "5000000"
+    },
+    {
+      "description": "Capacitación de Personal - 10 sesiones",
+      "unit_price": "2000000",
+      "quantity": 1,
+      "total": "2000000"
+    },
+    {
+      "description": "Informe Final y Documentación",
+      "unit_price": "1500000",
+      "quantity": 1,
+      "total": "1500000"
+    }
+  ],
+  "total_amount": "8500000",
+  "payment_method": "Transferencia bancaria 50% al inicio, 50% al finalizar",
+  "terms_and_conditions": "El contratado se compromete a cumplir todos los servicios dentro de los plazos establecidos. El contratante se compromete al pago oportuno según el cronograma de pagos. Ambas partes acuerdan resolver cualquier diferencia mediante arbitraje."
+}

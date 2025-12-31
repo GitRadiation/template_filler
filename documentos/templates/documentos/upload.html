@@ -1,0 +1,1055 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title id="page_title_tag">Generador de Documentos - Template Filler</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .language-selector {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            gap: 8px;
+            z-index: 1000;
+        }
+        
+        .lang-btn {
+            padding: 8px 16px;
+            border: 2px solid white;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 12px;
+            transition: all 0.3s;
+            backdrop-filter: blur(10px);
+        }
+        
+        .lang-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: scale(1.05);
+        }
+        
+        .lang-btn.active {
+            background: white;
+            color: #667eea;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        .container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+            max-width: 600px;
+            width: 100%;
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 28px;
+            text-align: center;
+        }
+        
+        .subtitle {
+            color: #666;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        
+        .form-group {
+            margin-bottom: 25px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 500;
+            font-size: 14px;
+        }
+        
+        select, input[type="file"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+        
+        select:focus, input[type="file"]:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .drag-drop-zone {
+            border: 2px dashed #667eea;
+            border-radius: 8px;
+            padding: 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: #f8f9ff;
+        }
+        
+        .drag-drop-zone.dragover {
+            background: #e8ebff;
+            border-color: #764ba2;
+            transform: scale(1.02);
+        }
+        
+        .drag-drop-zone p {
+            color: #666;
+            margin: 10px 0;
+            font-size: 14px;
+        }
+        
+        .drag-drop-zone .icon {
+            font-size: 40px;
+            margin-bottom: 10px;
+        }
+        
+        .drag-drop-zone .primary {
+            color: #667eea;
+            font-weight: 600;
+        }
+        
+        .drag-drop-zone .secondary {
+            color: #999;
+            font-size: 12px;
+        }
+        
+        #hiddenFileInput {
+            display: none;
+        }
+        
+        .file-name {
+            margin-top: 10px;
+            padding: 10px;
+            background: #f0f0f0;
+            border-radius: 4px;
+            color: #333;
+            font-size: 13px;
+            display: none;
+        }
+        
+        .file-name.active {
+            display: block;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 10px;
+        }
+        
+        button {
+            flex: 1;
+            padding: 14px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .btn-submit {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .btn-submit:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+        
+        .btn-submit:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .btn-reset {
+            background: #f0f0f0;
+            color: #333;
+        }
+        
+        .btn-reset:hover {
+            background: #e0e0e0;
+        }
+        
+        .status-container {
+            display: none;
+            margin-top: 30px;
+            padding: 20px;
+            background: #f8f9ff;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .status-container.active {
+            display: block;
+        }
+        
+        .status-container.success {
+            background: #f0fdf4;
+            border-left-color: #10b981;
+        }
+        
+        .status-container.error {
+            background: #fef2f2;
+            border-left-color: #ef4444;
+        }
+        
+        .status-title {
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #333;
+        }
+        
+        .status-content {
+            font-size: 13px;
+            color: #666;
+            word-break: break-all;
+        }
+        
+        .spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .info-box {
+            background: #ecf0f1;
+            border-radius: 6px;
+            padding: 15px;
+            margin-bottom: 20px;
+            font-size: 13px;
+            color: #555;
+            border-left: 4px solid #3498db;
+        }
+        
+        .info-box strong {
+            color: #333;
+        }
+        
+        .loading-spinner {
+            text-align: center;
+            padding: 20px;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 4px;
+            background: #e0e0e0;
+            border-radius: 2px;
+            overflow: hidden;
+            margin-top: 10px;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            width: 0%;
+            animation: progress 2s ease-in-out infinite;
+        }
+        
+        @keyframes progress {
+            0% { width: 0%; }
+            50% { width: 80%; }
+            100% { width: 100%; }
+        }
+        
+        .files-list {
+            margin-top: 20px;
+        }
+        
+        .file-item {
+            display: flex;
+            align-items: center;
+            padding: 12px;
+            background: white;
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+            margin-bottom: 8px;
+            font-size: 13px;
+        }
+        
+        .file-item.added {
+            background: #f0f9ff;
+            border-color: #667eea;
+        }
+        
+        .file-name-preview {
+            flex: 1;
+            color: #333;
+            word-break: break-all;
+        }
+        
+        .file-remove {
+            background: #ef4444;
+            color: white;
+            border: none;
+            padding: 6px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            margin-left: 10px;
+        }
+        
+        .file-remove:hover {
+            background: #dc2626;
+        }
+        
+        .jobs-list {
+            margin-top: 30px;
+        }
+        
+        .job-item {
+            padding: 15px;
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+            margin-bottom: 12px;
+            background: white;
+        }
+        
+        .job-item.pending {
+            border-left: 4px solid #f59e0b;
+        }
+        
+        .job-item.running {
+            border-left: 4px solid #667eea;
+            background: #f8f9ff;
+        }
+        
+        .job-item.completed {
+            border-left: 4px solid #10b981;
+            background: #f0fdf4;
+        }
+        
+        .job-item.failed {
+            border-left: 4px solid #ef4444;
+            background: #fef2f2;
+        }
+        
+        .job-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .job-status {
+            font-size: 12px;
+            padding: 4px 12px;
+            border-radius: 12px;
+            background: #e0e0e0;
+            color: #666;
+        }
+        
+        .job-status.pending {
+            background: #fef3c7;
+            color: #92400e;
+        }
+        
+        .job-status.running {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+        
+        .job-status.completed {
+            background: #dcfce7;
+            color: #166534;
+        }
+        
+        .job-status.failed {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+        
+        .job-details {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 10px;
+        }
+        
+        .job-actions {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .btn-small {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .btn-download {
+            background: #10b981;
+            color: white;
+        }
+        
+        .btn-download:hover {
+            background: #059669;
+        }
+        
+        .btn-download:disabled {
+            background: #d1d5db;
+            cursor: not-allowed;
+        }
+        
+        .btn-remove {
+            background: #ef4444;
+            color: white;
+        }
+        
+        .btn-remove:hover {
+            background: #dc2626;
+        }
+    </style>
+</head>
+<body>
+    <!-- Language Selector -->
+    <div class="language-selector">
+        <button class="lang-btn active" data-lang="es" onclick="changeLanguage('es')">ES</button>
+        <button class="lang-btn" data-lang="en" onclick="changeLanguage('en')">EN</button>
+    </div>
+    
+    <div class="container">
+        <h1 id="page_title">📄 Generador de Documentos</h1>
+        <p class="subtitle" id="page_subtitle">Crea documentos profesionales en segundos</p>
+        
+        <div class="info-box">
+            <strong id="instructions_header">ℹ️ Instrucciones:</strong>
+            <br>
+            <span id="instructions_text">Selecciona una plantilla y arrastra tus archivos JSON aquí (puedes seleccionar múltiples). Los documentos se descargarán automáticamente apenas estén listos.</span>
+        </div>
+        
+        <form id="uploadForm">
+            <div class="form-group">
+                <label for="templateSelect" id="template_label">Tipo de Plantilla *</label>
+                <select id="templateSelect" name="template_name" required>
+                    <option value="" id="template_placeholder">-- Selecciona una plantilla --</option>
+                    {% for template in templates %}
+                    <option value="{{ template }}" data-i18n="template_{{ template }}">
+                        {% if template == 'contract' %}Contrato{% elif template == 'invoice' %}Factura{% elif template == 'certificate' %}Certificado{% else %}{{ template }}{% endif %}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label id="files_label">Archivos JSON *</label>
+                <div class="drag-drop-zone" id="dragDropZone">
+                    <div class="icon">📁</div>
+                    <p class="primary" id="drag_drop_primary">Arrastra tus archivos aquí</p>
+                    <p class="secondary" id="drag_drop_secondary">o haz clic para seleccionar múltiples archivos</p>
+                </div>
+                <input type="file" id="hiddenFileInput" name="file" accept=".json" multiple>
+                
+                <!-- Lista de archivos seleccionados -->
+                <div class="files-list" id="filesList"></div>
+            </div>
+            
+            <div class="button-group">
+                <button type="submit" class="btn-submit" id="submitBtn">
+                    ✓ Generar Documentos
+                </button>
+                <button type="reset" class="btn-reset" id="resetBtn">⟲ Limpiar</button>
+            </div>
+        </form>
+        
+        <!-- Lista de trabajos -->
+        <div class="jobs-list" id="jobsList" style="display: none;">
+            <h3 id="jobs_list_title" style="margin-bottom: 15px; color: #333;">📋 Documentos en Proceso</h3>
+            <div id="jobsContainer"></div>
+        </div>
+    </div>
+    
+    <script>
+        /**
+         * Sistema de internacionalización (i18n) centralizado
+         * Soporta múltiples idiomas y almacenamiento en localStorage
+         */
+        const i18n = {
+            currentLanguage: localStorage.getItem('app_language') || 'es',
+            
+            translations: {
+                es: {
+                    // Títulos y encabezados
+                    'page_title': '📄 Generador de Documentos',
+                    'page_subtitle': 'Crea documentos profesionales en segundos',
+                    'instructions': 'ℹ️ Instrucciones',
+                    'instructions_text': 'Selecciona una plantilla y arrastra tus archivos JSON aquí (puedes seleccionar múltiples). Los documentos se descargarán automáticamente apenas estén listos.',
+                    
+                    // Formulario
+                    'template_label': 'Tipo de Plantilla *',
+                    'template_placeholder': '-- Selecciona una plantilla --',
+                    'template_contract': 'Contrato',
+                    'template_invoice': 'Factura',
+                    'template_certificate': 'Certificado',
+                    'files_label': 'Archivos JSON *',
+                    'drag_drop_primary': 'Arrastra tus archivos aquí',
+                    'drag_drop_secondary': 'o haz clic para seleccionar múltiples archivos',
+                    'btn_submit': '✓ Generar Documentos',
+                    'btn_reset': '⟲ Limpiar',
+                    
+                    // Lista de archivos
+                    'btn_remove': '✕ Eliminar',
+                    
+                    // Lista de trabajos
+                    'jobs_list_title': '📋 Documentos en Proceso',
+                    
+                    // Estados de trabajos
+                    'status_pending': 'Pendiente',
+                    'status_running': 'En proceso',
+                    'status_completed': 'Completado',
+                    'status_failed': 'Error',
+                    'status_emoji_pending': '⏳',
+                    'status_emoji_running': '⚙️',
+                    'status_emoji_completed': '✓',
+                    'status_emoji_failed': '❌',
+                    'status_emoji_unknown': '❓',
+                    
+                    // Detalles de trabajos
+                    'job_created': 'Creado',
+                    'btn_download': '⬇️ Descargar',
+                    'btn_remove_job': '🗑️ Eliminar',
+                    
+                    // Alertas y errores
+                    'error_no_template': 'Selecciona una plantilla',
+                    'error_no_files': 'Selecciona al menos un archivo JSON',
+                    'error_invalid_json': 'Por favor, selecciona solo archivos JSON',
+                    'error_title': '❌ Error',
+                    'warning_title': '⚠️ Advertencia',
+                    'warning_invalid_json': 'Por favor, selecciona solo archivos JSON válidos',
+                    'error_upload': 'Error desconocido',
+                    'error_checking_status': 'No se pudo verificar el estado',
+                    
+                    // Idioma
+                    'language': 'Idioma',
+                    'language_es': 'Español',
+                    'language_en': 'English',
+                },
+                
+                en: {
+                    // Titles and headers
+                    'page_title': '📄 Document Generator',
+                    'page_subtitle': 'Create professional documents in seconds',
+                    'instructions': 'ℹ️ Instructions',
+                    'instructions_text': 'Select a template and drag your JSON files here (you can select multiple files). Documents will download automatically as soon as they are ready.',
+                    
+                    // Form
+                    'template_label': 'Template Type *',
+                    'template_placeholder': '-- Select a template --',
+                    'template_contract': 'Contract',
+                    'template_invoice': 'Invoice',
+                    'template_certificate': 'Certificate',
+                    'files_label': 'JSON Files *',
+                    'drag_drop_primary': 'Drag your files here',
+                    'drag_drop_secondary': 'or click to select multiple files',
+                    'btn_submit': '✓ Generate Documents',
+                    'btn_reset': '⟲ Clear',
+                    
+                    // File list
+                    'btn_remove': '✕ Remove',
+                    
+                    // Jobs list
+                    'jobs_list_title': '📋 Documents Processing',
+                    
+                    // Job statuses
+                    'status_pending': 'Pending',
+                    'status_running': 'Processing',
+                    'status_completed': 'Completed',
+                    'status_failed': 'Error',
+                    'status_emoji_pending': '⏳',
+                    'status_emoji_running': '⚙️',
+                    'status_emoji_completed': '✓',
+                    'status_emoji_failed': '❌',
+                    'status_emoji_unknown': '❓',
+                    
+                    // Job details
+                    'job_created': 'Created',
+                    'btn_download': '⬇️ Download',
+                    'btn_remove_job': '🗑️ Remove',
+                    
+                    // Alerts and errors
+                    'error_no_template': 'Select a template',
+                    'error_no_files': 'Select at least one JSON file',
+                    'error_invalid_json': 'Please select only valid JSON files',
+                    'error_title': '❌ Error',
+                    'warning_title': '⚠️ Warning',
+                    'warning_invalid_json': 'Please select only valid JSON files',
+                    'error_upload': 'Unknown error',
+                    'error_checking_status': 'Could not verify status',
+                    
+                    // Language
+                    'language': 'Language',
+                    'language_es': 'Español',
+                    'language_en': 'English',
+                }
+            },
+            
+            t(key, params = {}) {
+                let text = this.translations[this.currentLanguage]?.[key] || this.translations['es']?.[key] || key;
+                
+                Object.keys(params).forEach(param => {
+                    text = text.replace(`{${param}}`, params[param]);
+                });
+                
+                return text;
+            },
+            
+            setLanguage(lang) {
+                if (this.translations[lang]) {
+                    this.currentLanguage = lang;
+                    localStorage.setItem('app_language', lang);
+                    
+                    document.dispatchEvent(new CustomEvent('languageChanged', { detail: { language: lang } }));
+                }
+            },
+            
+            getLanguage() {
+                return this.currentLanguage;
+            },
+            
+            getAvailableLanguages() {
+                return Object.keys(this.translations);
+            }
+        };
+    </script>
+    <script>
+        // Función para cambiar idioma
+        function changeLanguage(lang) {
+            i18n.setLanguage(lang);
+            updatePageLanguage();
+            updateUILanguage();
+        }
+        
+        // Actualizar idioma de la página
+        function updatePageLanguage() {
+            document.documentElement.lang = i18n.getLanguage();
+            document.getElementById('page_title_tag').textContent = i18n.getLanguage() === 'es' 
+                ? 'Generador de Documentos - Template Filler'
+                : 'Document Generator - Template Filler';
+        }
+        
+        // Actualizar toda la interfaz de usuario
+        function updateUILanguage() {
+            // Títulos y encabezados
+            document.getElementById('page_title').textContent = i18n.t('page_title');
+            document.getElementById('page_subtitle').textContent = i18n.t('page_subtitle');
+            document.getElementById('instructions_header').textContent = i18n.t('instructions') + ':';
+            document.getElementById('instructions_text').textContent = i18n.t('instructions_text');
+            
+            // Formulario
+            document.getElementById('template_label').textContent = i18n.t('template_label');
+            document.getElementById('template_placeholder').textContent = i18n.t('template_placeholder');
+            document.getElementById('files_label').textContent = i18n.t('files_label');
+            document.getElementById('drag_drop_primary').textContent = i18n.t('drag_drop_primary');
+            document.getElementById('drag_drop_secondary').textContent = i18n.t('drag_drop_secondary');
+            
+            // Botones
+            document.getElementById('submitBtn').textContent = i18n.t('btn_submit');
+            document.getElementById('resetBtn').textContent = i18n.t('btn_reset');
+            
+            // Opciones de template
+            updateTemplateOptions();
+            
+            // Lista de trabajos
+            document.getElementById('jobs_list_title').textContent = i18n.t('jobs_list_title');
+            
+            // Re-renderizar la lista de trabajos si existe
+            renderJobsList();
+            
+            // Actualizar botón de idioma activo
+            document.querySelectorAll('.lang-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.lang === i18n.getLanguage());
+            });
+        }
+        
+        function updateTemplateOptions() {
+            const templates = {
+                'contract': 'template_contract',
+                'invoice': 'template_invoice',
+                'certificate': 'template_certificate'
+            };
+            
+            document.querySelectorAll('#templateSelect option').forEach(option => {
+                if (option.dataset.i18n && templates[option.value]) {
+                    option.textContent = i18n.t(templates[option.value]);
+                }
+            });
+        }
+        
+        // Escuchar cambios de idioma
+        document.addEventListener('languageChanged', (event) => {
+            updateUILanguage();
+        });
+        
+        // Inicializar idioma al cargar
+        window.addEventListener('DOMContentLoaded', () => {
+            updatePageLanguage();
+            updateUILanguage();
+        });
+    </script>
+    <script>
+        // Estado global
+        const appState = {
+            selectedFiles: [],
+            jobs: new Map(), // jobId -> jobInfo
+            activePolling: new Map() // jobId -> intervalId
+        };
+        
+        // Elementos del DOM
+        const form = document.getElementById('uploadForm');
+        const dragDropZone = document.getElementById('dragDropZone');
+        const hiddenFileInput = document.getElementById('hiddenFileInput');
+        const submitBtn = document.getElementById('submitBtn');
+        const filesList = document.getElementById('filesList');
+        const jobsList = document.getElementById('jobsList');
+        const jobsContainer = document.getElementById('jobsContainer');
+        
+        // ===== DRAG & DROP =====
+        dragDropZone.addEventListener('click', () => {
+            hiddenFileInput.click();
+        });
+        
+        dragDropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dragDropZone.classList.add('dragover');
+        });
+        
+        dragDropZone.addEventListener('dragleave', () => {
+            dragDropZone.classList.remove('dragover');
+        });
+        
+        dragDropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dragDropZone.classList.remove('dragover');
+            
+            const droppedFiles = Array.from(e.dataTransfer.files);
+            const jsonFiles = droppedFiles.filter(f => f.type === 'application/json' || f.name.endsWith('.json'));
+            
+            if (jsonFiles.length > 0) {
+                addFiles(jsonFiles);
+            } else if (droppedFiles.length > 0) {
+                showAlert(i18n.t('warning_title'), i18n.t('warning_invalid_json'));
+            }
+        });
+        
+        hiddenFileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                addFiles(Array.from(e.target.files));
+            }
+        });
+        
+        function addFiles(files) {
+            const validFiles = files.filter(f => f.type === 'application/json' || f.name.endsWith('.json'));
+            
+            if (validFiles.length === 0) {
+                showAlert(i18n.t('error_title'), i18n.t('error_invalid_json'));
+                return;
+            }
+            
+            // Evitar duplicados por nombre
+            validFiles.forEach(file => {
+                if (!appState.selectedFiles.some(f => f.name === file.name && f.size === file.size)) {
+                    appState.selectedFiles.push(file);
+                }
+            });
+            
+            renderFilesList();
+        }
+        
+        function removeFile(index) {
+            appState.selectedFiles.splice(index, 1);
+            renderFilesList();
+        }
+        
+        function renderFilesList() {
+            filesList.innerHTML = '';
+            
+            if (appState.selectedFiles.length === 0) {
+                return;
+            }
+            
+            appState.selectedFiles.forEach((file, index) => {
+                const div = document.createElement('div');
+                div.className = 'file-item added';
+                div.innerHTML = `
+                    <span class="file-name-preview">📄 ${file.name} (${(file.size / 1024).toFixed(1)} KB)</span>
+                    <button type="button" class="file-remove" onclick="removeFile(${index})">✕ Eliminar</button>
+                `;
+                filesList.appendChild(div);
+            });
+        }
+        
+        // ===== ENVÍO DE FORMULARIO =====
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const template = document.getElementById('templateSelect').value;
+            
+            if (!template) {
+                showAlert(i18n.t('error_title'), i18n.t('error_no_template'));
+                return;
+            }
+            
+            if (appState.selectedFiles.length === 0) {
+                showAlert(i18n.t('error_title'), i18n.t('error_no_files'));
+                return;
+            }
+            
+            submitBtn.disabled = true;
+            
+            // Procesar cada archivo
+            for (const file of appState.selectedFiles) {
+                await uploadFile(template, file);
+            }
+            
+            submitBtn.disabled = false;
+            appState.selectedFiles = [];
+            renderFilesList();
+            hiddenFileInput.value = '';
+        });
+        
+        async function uploadFile(template, file) {
+            try {
+                const formData = new FormData();
+                formData.append('template_name', template);
+                formData.append('file', file);
+                
+                const response = await fetch('/api/documentos/upload/', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    addJobToList(null, file.name, 'failed', data.error || i18n.t('error_upload'));
+                    return;
+                }
+                
+                const jobId = data.job_id;
+                addJobToList(jobId, file.name, 'pending');
+                
+                // Iniciar polling inmediato y agresivo
+                startPolling(jobId, file.name);
+                
+            } catch (error) {
+                addJobToList(null, file.name, 'failed', error.message);
+            }
+        }
+        
+        // ===== POLLING CON INTERVALO DINÁMICO =====
+        function startPolling(jobId, fileName) {
+            // Primero, polling rápido cada 500ms durante 10 segundos
+            let fastAttempts = 0;
+            const maxFastAttempts = 20; // 10 segundos
+            
+            const fastInterval = setInterval(async () => {
+                fastAttempts++;
+                
+                const completed = await checkStatus(jobId, fileName);
+                
+                if (completed || fastAttempts >= maxFastAttempts) {
+                    clearInterval(fastInterval);
+                    
+                    if (!completed) {
+                        // Cambiar a polling lento (cada 5 segundos)
+                        startSlowPolling(jobId, fileName);
+                    }
+                }
+            }, 500);
+            
+            appState.activePolling.set(jobId, fastInterval);
+        }
+        
+        function startSlowPolling(jobId, fileName) {
+            const slowInterval = setInterval(async () => {
+                const completed = await checkStatus(jobId, fileName);
+                
+                if (completed) {
+                    clearInterval(slowInterval);
+                    appState.activePolling.delete(jobId);
+                }
+            }, 5000);
+            
+            appState.activePolling.set(jobId, slowInterval);
+        }
+        
+        async function checkStatus(jobId, fileName) {
+            try {
+                const response = await fetch(`/api/documentos/status/${jobId}/`);
+                
+                if (!response.ok) {
+                    return false;
+                }
+                
+                const status = await response.json();
+                updateJobInList(jobId, fileName, status.status, status.error_message);
+                
+                return status.status === 'completed' || status.status === 'failed';
+                
+            } catch (error) {
+                console.error('Error checking status:', error);
+                return false;
+            }
+        }
+        
+        // ===== GESTIÓN DE TRABAJOS EN LA LISTA =====
+        function addJobToList(jobId, fileName, status, errorMsg = null) {
+            const jobInfo = {
+                jobId,
+                fileName,
+                status,
+                errorMessage: errorMsg,
+                createdAt: new Date()
+            };
+            
+            appState.jobs.set(jobId || `error-${Date.now()}`, jobInfo);
+            renderJobsList();
+        }
+        
+        function updateJobInList(jobId, fileName, status, errorMsg = null) {
+            const jobInfo = appState.jobs.get(jobId);
+            
+            if (jobInfo) {
+                jobInfo.status = status;
+                jobInfo.errorMessage = errorMsg;
+                renderJobsList();
+            }
+        }
+        
+        function renderJobsList() {
+            if (appState.jobs.size === 0) {
+                jobsList.style.display = 'none';
+                return;
+            }
+            
+            jobsList.style.display = 'block';
+            jobsContainer.innerHTML = '';
+            
+            // Ordenar por fecha descendente (más recientes primero)
+            const sortedJobs = Array.from(appState.jobs.values())
+                .sort((a, b) => b.createdAt - a.createdAt);
+            
+            sortedJobs.forEach((job) => {
+                const div = document.createElement('div');
+                div.className = `job-item ${job.status}`;
+                div.id = `job-${job.jobId || 'error'}`;
+                
+                let statusEmoji = {
+                    'pending': i18n.t('status_emoji_pending'),
+                    'running': i18n.t('status_emoji_running'),
+                    'completed': i18n.t('status_emoji_completed'),
+                    'failed': i18n.t('status_emoji_failed')
+                }[job.status] || i18n.t('status_emoji_unknown');
+                
+                let statusText = {
+                    'pending': i18n.t('status_pending'),
+                    'running': i18n.t('status_running'),
+                    'completed': i18n.t('status_completed'),
+                    'failed': i18n.t('status_failed')
+                }[job.status] || i18n.t('status_emoji_unknown');
+                
+                let detailsHTML = `
+                    <div class="job-header">
+                        <span>${statusEmoji} ${job.fileName}</span>
+                        <span class="job-status ${job.status}">${statusText}</span>
+                    </div>
+                `;
+                
+                if (job.errorMessage) {
+                    detailsHTML += `<div class="job-details" style="color: #991b1b;">📌 ${job.errorMessage}</div>`;
+                }
+                
+                const createdTime = job.createdAt.toLocaleTimeString(i18n.getLanguage() === 'es' ? 'es-ES' : 'en-US');
+                detailsHTML += `<div class="job-details">${i18n.t('job_created')}: ${createdTime}</div>`;
+                
+                detailsHTML += '<div class="job-actions">';
+                
+                if (job.status === 'completed' && job.jobId) {
+                    detailsHTML += `
+                        <button class="btn-small btn-download" onclick="downloadJob('${job.jobId}', '${job.fileName.replace(/'/g, "\\'")}')">
+                            ${i18n.t('btn_download')}
+                        </button>
+                    `;
+                }
+                
+                detailsHTML += `
+                    <button class="btn-small btn-remove" onclick="removeJob('${job.jobId || 'error'}')">
+                        ${i18n.t('btn_remove_job')}
+                    </button>
+                </div>
+                `;
+                
+                div.innerHTML = detailsHTML;
+                jobsContainer.appendChild(div);
+            });
+        }
+        
+        function downloadJob(jobId, fileName) {
+            window.location.href = `/api/documentos/download/${jobId}/`;
+        }
+        
+        function removeJob(jobId) {
+            // Cancelar polling si está activo
+            if (appState.activePolling.has(jobId)) {
+                clearInterval(appState.activePolling.get(jobId));
+                appState.activePolling.delete(jobId);
+            }
+            
+            appState.jobs.delete(jobId);
+            renderJobsList();
+        }
+        
+        function showAlert(title, message) {
+            alert(`${title}\n\n${message}`);
+        }
+        
+        // Limpiar intervalos al salir de la página
+        window.addEventListener('beforeunload', () => {
+            appState.activePolling.forEach(interval => clearInterval(interval));
+        });
+    </script>
+</body>
+</html>

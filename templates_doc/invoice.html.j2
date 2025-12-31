@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Factura</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            color: #333;
+            max-width: 900px;
+            margin: 0;
+            padding: 30px;
+            background: white;
+        }
+        
+        .invoice-container {
+            border: 1px solid #ddd;
+            padding: 30px;
+        }
+        
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #2c3e50;
+            padding-bottom: 20px;
+        }
+        
+        .company-info {
+            flex: 1;
+        }
+        
+        .company-info h1 {
+            margin: 0;
+            font-size: 24px;
+            color: #2c3e50;
+        }
+        
+        .company-info p {
+            margin: 3px 0;
+            font-size: 12px;
+            color: #666;
+        }
+        
+        .invoice-details {
+            text-align: right;
+            flex: 1;
+        }
+        
+        .invoice-details h2 {
+            margin: 0;
+            font-size: 20px;
+            color: #2c3e50;
+        }
+        
+        .invoice-details p {
+            margin: 3px 0;
+            font-size: 12px;
+        }
+        
+        .invoice-details strong {
+            color: #333;
+        }
+        
+        .parties {
+            display: flex;
+            gap: 40px;
+            margin-bottom: 30px;
+        }
+        
+        .party {
+            flex: 1;
+        }
+        
+        .party-label {
+            font-weight: bold;
+            font-size: 12px;
+            background: #f5f5f5;
+            padding: 8px;
+            margin-bottom: 10px;
+        }
+        
+        .party p {
+            margin: 3px 0;
+            font-size: 11px;
+        }
+        
+        .items-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 30px 0;
+            font-size: 12px;
+        }
+        
+        .items-table th {
+            background: #2c3e50;
+            color: white;
+            padding: 12px;
+            text-align: left;
+            border: 1px solid #2c3e50;
+        }
+        
+        .items-table td {
+            padding: 12px;
+            border: 1px solid #ddd;
+        }
+        
+        .items-table tr:nth-child(even) {
+            background: #f9f9f9;
+        }
+        
+        .text-right {
+            text-align: right;
+        }
+        
+        .totals {
+            width: 100%;
+            margin-top: 30px;
+        }
+        
+        .totals-row {
+            display: flex;
+            justify-content: flex-end;
+            margin-bottom: 10px;
+            font-size: 12px;
+        }
+        
+        .totals-label {
+            width: 150px;
+            font-weight: bold;
+            text-align: right;
+            margin-right: 20px;
+        }
+        
+        .totals-value {
+            width: 100px;
+            text-align: right;
+        }
+        
+        .total-amount {
+            border-top: 2px solid #2c3e50;
+            border-bottom: 2px solid #2c3e50;
+            padding-top: 10px;
+            padding-bottom: 10px;
+        }
+        
+        .total-amount .totals-label {
+            font-size: 14px;
+            color: #2c3e50;
+        }
+        
+        .total-amount .totals-value {
+            font-size: 14px;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        
+        .notes {
+            margin-top: 30px;
+            padding: 15px;
+            background: #f9f9f9;
+            border-left: 4px solid #2c3e50;
+            font-size: 11px;
+        }
+        
+        .notes strong {
+            display: block;
+            margin-bottom: 5px;
+        }
+        
+        .footer {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #ddd;
+            text-align: center;
+            font-size: 10px;
+            color: #999;
+        }
+    </style>
+</head>
+<body>
+    <div class="invoice-container">
+        <div class="header">
+            <div class="company-info">
+                <h1>{{ company_name }}</h1>
+                <p><strong>NIT/RFC:</strong> {{ company_id }}</p>
+                <p><strong>Dirección:</strong> {{ company_address }}</p>
+                <p><strong>Teléfono:</strong> {{ company_phone }}</p>
+                <p><strong>Email:</strong> {{ company_email }}</p>
+            </div>
+            <div class="invoice-details">
+                <h2>FACTURA</h2>
+                <p><strong>Número:</strong> {{ invoice_number }}</p>
+                <p><strong>Fecha:</strong> {{ invoice_date }}</p>
+                <p><strong>Fecha de vencimiento:</strong> {{ due_date }}</p>
+            </div>
+        </div>
+        
+        <div class="parties">
+            <div class="party">
+                <div class="party-label">FACTURA A (Cliente):</div>
+                <p><strong>Nombre:</strong> {{ customer_name }}</p>
+                <p><strong>NIT/RFC:</strong> {{ customer_id }}</p>
+                <p><strong>Dirección:</strong> {{ customer_address }}</p>
+                <p><strong>Email:</strong> {{ customer_email }}</p>
+            </div>
+            <div class="party">
+                <div class="party-label">INFORMACIÓN DE PAGO:</div>
+                <p><strong>Forma de pago:</strong> {{ payment_method }}</p>
+                <p><strong>Banco:</strong> {{ bank_name }}</p>
+                <p><strong>Cuenta:</strong> {{ account_number }}</p>
+                <p><strong>IBAN/Swift:</strong> {{ account_reference }}</p>
+            </div>
+        </div>
+        
+        <table class="items-table">
+            <thead>
+                <tr>
+                    <th>Descripción</th>
+                    <th class="text-right">Cantidad</th>
+                    <th class="text-right">Precio Unitario</th>
+                    <th class="text-right">Descuento %</th>
+                    <th class="text-right">Subtotal</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if items %}
+                    {% for item in items %}
+                    <tr>
+                        <td>{{ item.description }}</td>
+                        <td class="text-right">{{ item.quantity }}</td>
+                        <td class="text-right">${{ item.unit_price }}</td>
+                        <td class="text-right">{{ item.discount_percent }}%</td>
+                        <td class="text-right"><strong>${{ item.subtotal }}</strong></td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="5" class="text-right">Sin elementos especificados</td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+        
+        <div class="totals">
+            <div class="totals-row">
+                <div class="totals-label">Subtotal:</div>
+                <div class="totals-value">${{ subtotal }}</div>
+            </div>
+            <div class="totals-row">
+                <div class="totals-label">Descuento Total:</div>
+                <div class="totals-value">${{ discount_amount }}</div>
+            </div>
+            <div class="totals-row">
+                <div class="totals-label">IVA/GST ({{ tax_rate }}%):</div>
+                <div class="totals-value">${{ tax_amount }}</div>
+            </div>
+            <div class="totals-row total-amount">
+                <div class="totals-label">TOTAL:</div>
+                <div class="totals-value">${{ total_amount }}</div>
+            </div>
+        </div>
+        
+        {% if notes %}
+        <div class="notes">
+            <strong>Notas:</strong>
+            <p>{{ notes }}</p>
+        </div>
+        {% endif %}
+        
+        <div class="footer">
+            <p>Gracias por su negocio. Esta factura fue generada automáticamente.</p>
+            <p>Por favor, conserve este documento para sus registros.</p>
+        </div>
+    </div>
+</body>
+</html>

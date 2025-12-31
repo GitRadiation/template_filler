@@ -1,0 +1,116 @@
+services:
+  db:
+    image: bitnami/postgresql
+    environment:
+      - POSTGRESQL_DATABASE=djangodb
+      - POSTGRESQL_USERNAME=djangouser
+      - POSTGRESQL_PASSWORD=secretpassword
+      - POSTGRESQL_POSTGRES_PASSWORD=postgrespassword
+    volumes:
+      - db_data:/bitnami/postgresql
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U djangouser -d djangodb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: bitnami/redis
+    environment:
+      - ALLOW_EMPTY_PASSWORD=yes
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/bitnami/redis
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  web:
+    build: .
+    command: >
+      sh -c "python manage.py migrate --noinput &&
+             python manage.py collectstatic --noinput &&
+             python manage.py createsuperuser --noinput --username admin --email admin@example.com 2>/dev/null || true &&
+             gunicorn project.wsgi:application --bind 0.0.0.0:8000 --workers 2"
+    environment:
+      - DATABASE_URL=postgres://djangouser:secretpassword@db:5432/djangodb
+      - DATABASE_NAME=djangodb
+      - DATABASE_USER=djangouser
+      - DATABASE_PASSWORD=secretpassword
+      - DATABASE_HOST=db
+      - DATABASE_PORT=5432
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/1
+      - DJANGO_SETTINGS_MODULE=project.settings
+      - DEBUG=False
+      - ALLOWED_HOSTS=localhost,127.0.0.1,web
+      - DJANGO_SUPERUSER_PASSWORD=admin123
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - .:/app
+      - ./media:/app/media
+      - ./staticfiles:/app/staticfiles
+    restart: on-failure
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/admin/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  worker:
+    build: .
+    command: celery -A project worker --loglevel=info -Q default,documents --concurrency=4
+    environment:
+      - DATABASE_URL=postgres://djangouser:secretpassword@db:5432/djangodb
+      - DATABASE_NAME=djangodb
+      - DATABASE_USER=djangouser
+      - DATABASE_PASSWORD=secretpassword
+      - DATABASE_HOST=db
+      - DATABASE_PORT=5432
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/1
+      - DJANGO_SETTINGS_MODULE=project.settings
+      - DEBUG=False
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - .:/app
+      - ./media:/app/media
+    restart: on-failure
+
+  flower:
+    build: .
+    command: celery -A project flower --port=5555 --broker=redis://redis:6379/0
+    environment:
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/1
+      - DJANGO_SETTINGS_MODULE=project.settings
+    ports:
+      - "5555:5555"
+    depends_on:
+      redis:
+        condition: service_healthy
+    volumes:
+      - .:/app
+    restart: on-failure
+
+volumes:
+  db_data:
+  redis_data:
