@@ -23,10 +23,11 @@ class DocumentJob(models.Model):
 
     class Status(models.TextChoices):
         """Possible states of a document job."""
-        PENDING = 'pending', _('Pending')
-        RUNNING = 'running', _('Running')
-        COMPLETED = 'completed', _('Completed')
-        FAILED = 'failed', _('Failed')
+        PENDING = 'PENDING', _('Pendiente')
+        RUNNING = 'RUNNING', _('En ejecución')
+        COMPLETED = 'COMPLETED', _('Completado')
+        FAILED = 'FAILED', _('Fallido')
+
 
     # =========================
     # Identifiers

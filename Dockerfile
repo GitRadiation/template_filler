@@ -30,6 +30,7 @@ COPY requirements.txt /app/
 # Install python dependencies
 RUN pip install --upgrade pip && \
     pip install -r requirements.txt
+RUN pip install whitenoise
 
 # Copy application code
 COPY . /app

@@ -7,6 +7,7 @@ in the Django administration panel.
 
 from django.contrib import admin
 from django.utils.html import format_html
+from django.utils.translation import gettext_lazy as _
 
 from .models import DocumentJob
 
@@ -14,7 +15,7 @@ from .models import DocumentJob
 @admin.register(DocumentJob)
 class DocumentJobAdmin(admin.ModelAdmin):
     """
-    Admin panel configuration for DocumentJob.
+    Configuración del panel de administración para DocumentJob.
     """
 
     # =========================
@@ -60,7 +61,7 @@ class DocumentJobAdmin(admin.ModelAdmin):
 
     fieldsets = (
         (
-            'Basic Information',
+            _('Información Básica'),
             {
                 'fields': [
                     'id',
@@ -71,7 +72,7 @@ class DocumentJobAdmin(admin.ModelAdmin):
             },
         ),
         (
-            'Files',
+            _('Archivos'),
             {
                 'fields': [
                     'input_file',
@@ -81,7 +82,7 @@ class DocumentJobAdmin(admin.ModelAdmin):
             },
         ),
         (
-            'Input Data',
+            _('Datos de Entrada'),
             {
                 'fields': [
                     'input_data',
@@ -91,7 +92,7 @@ class DocumentJobAdmin(admin.ModelAdmin):
             },
         ),
         (
-            'Status & Errors',
+            _('Estado y Errores'),
             {
                 'fields': [
                     'error_message',
@@ -107,14 +108,14 @@ class DocumentJobAdmin(admin.ModelAdmin):
     # =========================
     # Custom display methods
     # =========================
+    @admin.display(description=_('ID'))
     def short_id(self, obj) -> str:
-        """Display the first 8 characters of the UUID."""
+        """Muestra los primeros 8 caracteres del UUID."""
         return str(obj.id)[:8]
 
-    short_id.short_description = 'ID'  # type: ignore
-
+    @admin.display(description=_('Estado'))
     def status_badge(self, obj) -> str:
-        """Display job status using a colored badge."""
+        """Muestra el estado del trabajo con una insignia de color."""
         colors = {
             DocumentJob.Status.PENDING: '#FFA500',    # Orange
             DocumentJob.Status.RUNNING: '#1E90FF',    # Blue
@@ -131,51 +132,48 @@ class DocumentJobAdmin(admin.ModelAdmin):
             obj.get_status_display(),
         )
 
-    status_badge.short_description = 'Status'  # type: ignore
-
+    @admin.display(description=_('Archivo de Salida'))
     def output_file_link(self, obj) -> str:
-        """Display a download link for the generated output file."""
+        """Muestra un enlace de descarga para el archivo de salida."""
         if not obj.output_file:
             return '-'
 
         return format_html(
-            '<a href="{}" target="_blank">Download</a>',
+            '<a href="{}" target="_blank">{}</a>',
             obj.output_file.url,
+            _('Descargar'),
         )
 
-    output_file_link.short_description = 'Output File'  # type: ignore
-
+    @admin.display(description=_('Vista Previa'))
     def output_file_preview(self, obj) -> str:
-        """Display a preview/download link for the output file."""
+        """Muestra un enlace de vista previa/descarga."""
         if not obj.output_file:
-            return 'Not available'
+            return _('No disponible')
 
         return format_html(
-            '<a href="{}" target="_blank">View / Download</a>',
+            '<a href="{}" target="_blank">{}</a>',
             obj.output_file.url,
+            _('Ver / Descargar'),
         )
 
-    output_file_preview.short_description = 'Preview'  # type: ignore
-
+    @admin.display(description=_('Datos de Entrada'))
     def input_data_display(self, obj) -> str:
-        """Pretty-print input JSON data."""
+        """Muestra los datos JSON de entrada formateados."""
         import json
 
         if not obj.input_data:
-            return 'No data'
+            return _('Sin datos')
 
         return format_html(
             '<pre>{}</pre>',
             json.dumps(obj.input_data, indent=2, ensure_ascii=False),
         )
 
-    input_data_display.short_description = 'Input Data'  # type: ignore
-
     # =========================
     # Permissions
     # =========================
     def has_delete_permission(self, request, obj=None) -> bool:
-        """Allow deletion only for superusers."""
+        """Permite eliminación solo para superusuarios."""
         return request.user.is_superuser
 
     # =========================
@@ -186,9 +184,10 @@ class DocumentJobAdmin(admin.ModelAdmin):
         'mark_as_pending',
     ]
 
+    @admin.action(description=_('Reintentar trabajos fallidos'))
     def retry_failed_jobs(self, request, queryset) -> None:
         """
-        Retry selected jobs that are in FAILED status.
+        Reintenta trabajos seleccionados que están en estado FAILED.
         """
         from .services import DocumentService
 
@@ -205,20 +204,17 @@ class DocumentJobAdmin(admin.ModelAdmin):
 
         self.message_user(
             request,
-            f'{retried_count} job(s) retried successfully.',
+            _('{} trabajo(s) reintentado(s) exitosamente.').format(retried_count),
         )
 
-    retry_failed_jobs.short_description = 'Retry failed jobs'  # type: ignore
-
+    @admin.action(description=_('Marcar como pendiente'))
     def mark_as_pending(self, request, queryset) -> None:
         """
-        Mark selected jobs as PENDING.
+        Marca trabajos seleccionados como PENDING.
         """
         updated_count = queryset.update(status=DocumentJob.Status.PENDING)
 
         self.message_user(
             request,
-            f'{updated_count} job(s) marked as pending.',
+            _('{} trabajo(s) marcado(s) como pendiente.').format(updated_count),
         )
-
-    mark_as_pending.short_description = 'Mark as pending'  # type: ignore
