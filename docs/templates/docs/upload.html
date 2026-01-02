@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html lang="es">
+{% load static %}
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title id="page_title_tag">Document Generator - Template Filler</title>
+        <link rel="stylesheet" href="{% static 'css/style.css' %}">
+
+</head>
+<body>
+    <script src="{% static 'js/i18n.js' %}"></script>
+
+    <!-- Language Selector -->
+    <div class="language-selector">
+        <button class="lang-btn active" data-lang="es">ES</button>
+        <button class="lang-btn" data-lang="en">EN</button>
+    </div>
+
+    <div class="container">
+        <h1 id="page_title"></h1>
+        <p class="subtitle" id="page_subtitle"></p>
+
+        <!-- Instructions -->
+        <div class="info-box">
+            <strong id="instructions_header"></strong><br />
+            <span id="instructions_text"></span>
+        </div>
+
+        <!-- Upload Form -->
+        <form id="uploadForm">
+            <div class="form-group">
+                <label for="templateSelect" id="template_label"></label>
+                <select id="templateSelect" name="template_name" required>
+                    <option value="" id="template_placeholder"></option>
+                    <option value="contract" data-i18n="template_contract">Contract</option>
+                    <option value="invoice" data-i18n="template_invoice">Invoice</option>
+                    <option value="certificate" data-i18n="template_certificate">Certificate</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label id="files_label"></label>
+
+                <!-- Drag & Drop -->
+                <div class="drag-drop-zone" id="dragDropZone" role="button" tabindex="0" aria-label="File upload area">
+                    <div class="icon">📁</div>
+                    <p class="primary" id="drag_drop_primary"></p>
+                    <p class="secondary" id="drag_drop_secondary"></p>
+                </div>
+
+                <input
+                    type="file"
+                    id="hiddenFileInput"
+                    name="file"
+                    accept=".json,application/json"
+                    multiple
+                    hidden
+                    aria-label="JSON file input"
+                />
+
+                <!-- Selected files -->
+                <div class="files-list" id="filesList"></div>
+            </div>
+
+            <div class="button-group">
+                <button type="submit" class="btn-submit" id="submitBtn" aria-label="Generate documents"></button>
+                <button type="reset" class="btn-reset" id="resetBtn" aria-label="Clear form"></button>
+            </div>
+        </form>
+
+        <!-- Jobs list -->
+        <div class="jobs-list" id="jobsList" style="display: none;">
+            <h3 id="jobs_list_title"></h3>
+            <div id="jobsContainer"></div>
+        </div>
+    </div>
+
+    <!-- Custom Alert -->
+    <div class="alert-overlay" id="alertOverlay">
+        <div class="alert-box">
+            <div class="alert-title" id="alertTitle"></div>
+            <div class="alert-message" id="alertMessage"></div>
+            <button class="alert-close" id="alertClose">OK</button>
+        </div>
+    </div>
+    
+    <script>
+        /**
+         * Configuration Constants
+         */
+        const CONFIG = {
+            MAX_FILE_SIZE_MB: 10,
+            POLLING_FAST_INTERVAL_MS: 500,
+            POLLING_FAST_MAX_ATTEMPTS: 20,
+            POLLING_SLOW_INTERVAL_MS: 5000,
+            POLLING_MAX_DURATION_MS: 10 * 60 * 1000, // 10 minutes
+            API_ENDPOINTS: {
+                upload: '/api/docs/upload/',
+                status: '/api/docs/status/',
+                download: '/api/docs/download/',
+                delete: '/api/docs/delete/'
+            }
+        };
+
+        
+        /**
+         * Application State
+         */
+        const App = {
+            state: {
+                selectedFiles: [],
+                jobs: new Map(),
+                activePolling: new Map(),
+            },
+
+            /**
+             * CSRF Token Helper
+             */
+            getCsrfToken() {
+                const name = 'csrftoken';
+                let cookieValue = null;
+                if (document.cookie && document.cookie !== '') {
+                    const cookies = document.cookie.split(';');
+                    for (let i = 0; i < cookies.length; i++) {
+                        const cookie = cookies[i].trim();
+                        if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                            cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                            break;
+                        }
+                    }
+                }
+                return cookieValue;
+            },
+
+            /**
+             * File Validation
+             */
+            validateFile(file) {
+                // Check if JSON
+                if (!file.type.includes('json') && !file.name.endsWith('.json')) {
+                    return { valid: false, error: i18n.t('error_invalid_json') };
+                }
+
+                // Check size
+                const maxSizeBytes = CONFIG.MAX_FILE_SIZE_MB * 1024 * 1024;
+                if (file.size > maxSizeBytes) {
+                    return {
+                        valid: false,
+                        error: i18n.t('error_file_too_large', {
+                            filename: file.name,
+                            maxSize: CONFIG.MAX_FILE_SIZE_MB
+                        })
+                    };
+                }
+
+                return { valid: true };
+            },
+
+            /**
+             * File Management
+             */
+            addFiles(files) {
+                const validFiles = [];
+                const errors = [];
+
+                files.forEach(file => {
+                    const validation = this.validateFile(file);
+                    if (validation.valid) {
+                        // Avoid duplicates
+                        if (!this.state.selectedFiles.some(f => 
+                            f.name === file.name && f.size === file.size
+                        )) {
+                            validFiles.push(file);
+                        }
+                    } else {
+                        errors.push({ file: file.name, error: validation.error });
+                    }
+                });
+
+                if (errors.length > 0) {
+                    UI.showAlert(
+                        i18n.t('warning_title'),
+                        errors.map(e => `${e.file}: ${e.error}`).join('\n')
+                    );
+                }
+
+                if (validFiles.length > 0) {
+                    this.state.selectedFiles.push(...validFiles);
+                    UI.renderFilesList();
+                }
+            },
+
+            removeFile(index) {
+                this.state.selectedFiles.splice(index, 1);
+                UI.renderFilesList();
+            },
+
+            /**
+             * Job Management
+             */
+            addJob(jobId, fileName, status, errorMsg = null) {
+                const jobInfo = {
+                    jobId,
+                    fileName,
+                    status,
+                    errorMessage: errorMsg,
+                    createdAt: new Date(),
+                    startTime: Date.now()
+                };
+                
+                this.state.jobs.set(jobId || `error-${Date.now()}`, jobInfo);
+                UI.renderJobsList();
+            },
+
+            updateJob(jobId, status, errorMsg = null) {
+                const jobInfo = this.state.jobs.get(jobId);
+                
+                if (jobInfo) {
+                    jobInfo.status = status;
+                    jobInfo.errorMessage = errorMsg;
+                    UI.renderJobsList();
+                }
+            },
+
+            removeJob(jobId) {
+                this.stopPolling(jobId);
+                
+                if (jobId.startsWith('error-')) {
+                    this.state.jobs.delete(jobId);
+                    UI.renderJobsList();
+                    return;
+                }
+
+                const csrfToken = this.getCsrfToken();
+                const headers = { 'Content-Type': 'application/json' };
+                if (csrfToken) headers['X-CSRFToken'] = csrfToken;
+                
+                fetch(`${CONFIG.API_ENDPOINTS.delete}${jobId}/`, {
+                    method: 'DELETE',
+                    headers
+                })
+                .then(response => {
+                    if (response.ok) {
+                        this.state.jobs.delete(jobId);
+                        UI.renderJobsList();
+                    }
+                })
+                .catch(error => {
+                    console.error('Delete error:', error);
+                    this.state.jobs.delete(jobId);
+                    UI.renderJobsList();
+                });
+            },
+
+            /**
+             * Polling Management
+             */
+            startPolling(jobId, fileName) {
+                let fastAttempts = 0;
+                const startTime = Date.now();
+                
+                const fastInterval = setInterval(async () => {
+                    fastAttempts++;
+                    const elapsed = Date.now() - startTime;
+                    
+                    // Check timeout
+                    if (elapsed > CONFIG.POLLING_MAX_DURATION_MS) {
+                        this.handleTimeout(jobId);
+                        clearInterval(fastInterval);
+                        return;
+                    }
+                    
+                    const completed = await this.checkStatus(jobId, fileName);
+                    
+                    if (completed || fastAttempts >= CONFIG.POLLING_FAST_MAX_ATTEMPTS) {
+                        clearInterval(fastInterval);
+                        
+                        if (!completed && elapsed < CONFIG.POLLING_MAX_DURATION_MS) {
+                            this.startSlowPolling(jobId, fileName, startTime);
+                        }
+                    }
+                }, CONFIG.POLLING_FAST_INTERVAL_MS);
+                
+                this.state.activePolling.set(jobId, fastInterval);
+            },
+
+            startSlowPolling(jobId, fileName, startTime) {
+                const slowInterval = setInterval(async () => {
+                    const elapsed = Date.now() - startTime;
+                    
+                    if (elapsed > CONFIG.POLLING_MAX_DURATION_MS) {
+                        this.handleTimeout(jobId);
+                        clearInterval(slowInterval);
+                        return;
+                    }
+                    
+                    const completed = await this.checkStatus(jobId, fileName);
+                    
+                    if (completed) {
+                        clearInterval(slowInterval);
+                        this.state.activePolling.delete(jobId);
+                    }
+                }, CONFIG.POLLING_SLOW_INTERVAL_MS);
+                
+                this.state.activePolling.set(jobId, slowInterval);
+            },
+
+            stopPolling(jobId) {
+                if (this.state.activePolling.has(jobId)) {
+                    clearInterval(this.state.activePolling.get(jobId));
+                    this.state.activePolling.delete(jobId);
+                }
+            },
+
+            handleTimeout(jobId) {
+                this.stopPolling(jobId);
+                this.updateJob(jobId, 'timeout', i18n.t('error_timeout'));
+            },
+
+            async checkStatus(jobId, fileName) {
+                try {
+                    const response = await fetch(`${CONFIG.API_ENDPOINTS.status}${jobId}/`);
+                    
+                    if (!response.ok) {
+                        if (response.status >= 500) {
+                            throw new Error(i18n.t('error_network'));
+                        }
+                        return false;
+                    }
+                    
+                    const status = await response.json();
+                    this.updateJob(jobId, status.status, status.error_message);
+                    
+                    return status.status === 'completed' || 
+                           status.status === 'failed';
+                    
+                } catch (error) {
+                    console.error('Status check error:', error);
+                    return false;
+                }
+            },
+
+            /**
+             * File Upload
+             */
+            async uploadFile(template, file) {
+                try {
+                    const formData = new FormData();
+                    formData.append('template_name', template);
+                    formData.append('file', file);
+                    
+                    const csrfToken = this.getCsrfToken();
+                    const headers = {};
+                    if (csrfToken) headers['X-CSRFToken'] = csrfToken;
+                    
+                    const response = await fetch(CONFIG.API_ENDPOINTS.upload, {
+                        method: 'POST',
+                        headers,
+                        body: formData
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (!response.ok) {
+                        this.addJob(null, file.name, 'failed', 
+                            data.error || i18n.t('error_upload'));
+                        return;
+                    }
+                    
+                    const jobId = data.job_id;
+                    this.addJob(jobId, file.name, 'pending');
+                    this.startPolling(jobId, file.name);
+                    
+                } catch (error) {
+                    this.addJob(null, file.name, 'failed', 
+                        error.message || i18n.t('error_network'));
+                }
+            },
+
+            /**
+             * Form Submission
+             */
+            async submitForm(e) {
+                e.preventDefault();
+                
+                const template = document.getElementById('templateSelect').value;
+                
+                if (!template) {
+                    UI.showAlert(i18n.t('error_title'), i18n.t('error_no_template'));
+                    return;
+                }
+                
+                if (this.state.selectedFiles.length === 0) {
+                    UI.showAlert(i18n.t('error_title'), i18n.t('error_no_files'));
+                    return;
+                }
+                
+                UI.disableSubmit(true);
+                
+                for (const file of this.state.selectedFiles) {
+                    await this.uploadFile(template, file);
+                }
+                
+                UI.disableSubmit(false);
+                this.state.selectedFiles = [];
+                UI.renderFilesList();
+                document.getElementById('hiddenFileInput').value = '';
+            },
+
+            downloadJob(jobId, fileName) {
+                window.location.href = `${CONFIG.API_ENDPOINTS.download}${jobId}/`;
+            },
+
+            /**
+             * Cleanup
+             */
+            cleanup() {
+                this.state.activePolling.forEach(interval => clearInterval(interval));
+                this.state.activePolling.clear();
+            }
+        };
+
+        /**
+         * UI Management
+         */
+        const UI = {
+            elements: {},
+
+            init() {
+                this.cacheElements();
+                this.attachEventListeners();
+                this.updateLanguage();
+            },
+
+            cacheElements() {
+                this.elements = {
+                    form: document.getElementById('uploadForm'),
+                    dragDropZone: document.getElementById('dragDropZone'),
+                    hiddenFileInput: document.getElementById('hiddenFileInput'),
+                    submitBtn: document.getElementById('submitBtn'),
+                    filesList: document.getElementById('filesList'),
+                    jobsList: document.getElementById('jobsList'),
+                    jobsContainer: document.getElementById('jobsContainer'),
+                    alertOverlay: document.getElementById('alertOverlay'),
+                    alertTitle: document.getElementById('alertTitle'),
+                    alertMessage: document.getElementById('alertMessage'),
+                    alertClose: document.getElementById('alertClose')
+                };
+            },
+
+            attachEventListeners() {
+                // Form
+                this.elements.form.addEventListener('submit', (e) => App.submitForm(e));
+                this.elements.form.addEventListener('reset', () => {
+                    App.state.selectedFiles = [];
+                    this.renderFilesList();
+                });
+
+                // Drag & Drop
+                this.elements.dragDropZone.addEventListener('click', () => {
+                    this.elements.hiddenFileInput.click();
+                });
+
+                this.elements.dragDropZone.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        this.elements.hiddenFileInput.click();
+                    }
+                });
+
+                this.elements.dragDropZone.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    this.elements.dragDropZone.classList.add('dragover');
+                });
+
+                this.elements.dragDropZone.addEventListener('dragleave', () => {
+                    this.elements.dragDropZone.classList.remove('dragover');
+                });
+
+                this.elements.dragDropZone.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    this.elements.dragDropZone.classList.remove('dragover');
+                    
+                    const droppedFiles = Array.from(e.dataTransfer.files);
+                    if (droppedFiles.length > 0) {
+                        App.addFiles(droppedFiles);
+                    }
+                });
+
+                this.elements.hiddenFileInput.addEventListener('change', (e) => {
+                    if (e.target.files.length > 0) {
+                        App.addFiles(Array.from(e.target.files));
+                    }
+                });
+
+                // Language buttons
+                document.querySelectorAll('.lang-btn').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        i18n.setLanguage(btn.dataset.lang);
+                    });
+                });
+
+                // Alert close
+                this.elements.alertClose.addEventListener('click', () => {
+                    this.hideAlert();
+                });
+
+                this.elements.alertOverlay.addEventListener('click', (e) => {
+                    if (e.target === this.elements.alertOverlay) {
+                        this.hideAlert();
+                    }
+                });
+
+                // Language change event
+                document.addEventListener('languageChanged', () => {
+                    this.updateLanguage();
+                });
+
+                // Cleanup on page unload
+                window.addEventListener('beforeunload', () => {
+                    App.cleanup();
+                });
+            },
+
+            updateLanguage() {
+                // Update page language
+                document.documentElement.lang = i18n.currentLanguage;
+                document.getElementById('page_title_tag').textContent = 
+                    i18n.t('page_title') + ' - Template Filler';
+
+                // Update all text elements
+                document.getElementById('page_title').textContent = i18n.t('page_title');
+                document.getElementById('page_subtitle').textContent = i18n.t('page_subtitle');
+                document.getElementById('instructions_header').textContent = i18n.t('instructions_header') + ':';
+                document.getElementById('instructions_text').textContent = i18n.t('instructions_text');
+                
+                document.getElementById('template_label').textContent = i18n.t('template_label');
+                document.getElementById('template_placeholder').textContent = i18n.t('template_placeholder');
+                document.getElementById('files_label').textContent = i18n.t('files_label');
+                document.getElementById('drag_drop_primary').textContent = i18n.t('drag_drop_primary');
+                document.getElementById('drag_drop_secondary').textContent = i18n.t('drag_drop_secondary');
+                
+                this.elements.submitBtn.textContent = i18n.t('btn_submit');
+                document.getElementById('resetBtn').textContent = i18n.t('btn_reset');
+                document.getElementById('jobs_list_title').textContent = i18n.t('jobs_list_title');
+
+                // Update template options
+                document.querySelectorAll('#templateSelect option[data-i18n]').forEach(option => {
+                    const key = option.dataset.i18n;
+                    if (key) {
+                        option.textContent = i18n.t(key);
+                    }
+                });
+
+                // Update language buttons
+                document.querySelectorAll('.lang-btn').forEach(btn => {
+                    btn.classList.toggle('active', btn.dataset.lang === i18n.currentLanguage);
+                });
+
+                // Re-render dynamic content
+                this.renderFilesList();
+                this.renderJobsList();
+            },
+
+            renderFilesList() {
+                this.elements.filesList.innerHTML = '';
+                
+                if (App.state.selectedFiles.length === 0) {
+                    return;
+                }
+                
+                App.state.selectedFiles.forEach((file, index) => {
+                    const div = document.createElement('div');
+                    div.className = 'file-item added';
+                    
+                    const sizeKB = (file.size / 1024).toFixed(1);
+                    
+                    div.innerHTML = `
+                        <span class="file-name-preview">📄 ${this.escapeHtml(file.name)} (${sizeKB} KB)</span>
+                        <button type="button" class="file-remove" 
+                                onclick="App.removeFile(${index})"
+                                aria-label="${i18n.t('btn_remove')} ${this.escapeHtml(file.name)}">
+                            ${i18n.t('btn_remove')}
+                        </button>
+                    `;
+                    this.elements.filesList.appendChild(div);
+                });
+            },
+
+            renderJobsList() {
+                if (App.state.jobs.size === 0) {
+                    this.elements.jobsList.style.display = 'none';
+                    return;
+                }
+                
+                this.elements.jobsList.style.display = 'block';
+                this.elements.jobsContainer.innerHTML = '';
+                
+                const sortedJobs = Array.from(App.state.jobs.values())
+                    .sort((a, b) => b.createdAt - a.createdAt);
+                
+                sortedJobs.forEach((job) => {
+                    const div = document.createElement('div');
+                    div.className = `job-item ${job.status}`;
+                    div.id = `job-${job.jobId}`;
+                    
+                    const statusEmoji = i18n.t(`status_emoji_${job.status}`) || 
+                                       i18n.t('status_emoji_unknown');
+                    const statusText = i18n.t(`status_${job.status}`) || 
+                                      job.status;
+                    
+                    let html = `
+                        <div class="job-header">
+                            <span>${statusEmoji} ${this.escapeHtml(job.fileName)}</span>
+                            <span class="job-status ${job.status}">${statusText}</span>
+                        </div>
+                    `;
+                    
+                    if (job.errorMessage) {
+                        html += `<div class="job-details" style="color: #991b1b;">
+                            📌 ${this.escapeHtml(job.errorMessage)}
+                        </div>`;
+                    }
+                    
+                    const timeStr = job.createdAt.toLocaleTimeString(
+                        i18n.currentLanguage === 'es' ? 'es-ES' : 'en-US'
+                    );
+                    html += `<div class="job-details">${i18n.t('job_created')}: ${timeStr}</div>`;
+                    
+                    html += '<div class="job-actions">';
+                    
+                    if (job.status === 'completed' && job.jobId) {
+                        html += `
+                            <button class="btn-small btn-download" 
+                                    onclick="App.downloadJob('${job.jobId}', '${this.escapeHtml(job.fileName)}')"
+                                    aria-label="${i18n.t('btn_download')} ${this.escapeHtml(job.fileName)}">
+                                ${i18n.t('btn_download')}
+                            </button>
+                        `;
+                    }
+                    
+                    html += `
+                        <button class="btn-small btn-remove" 
+                                onclick="App.removeJob('${job.jobId || 'error'}')"
+                                aria-label="${i18n.t('btn_remove_job')} ${this.escapeHtml(job.fileName)}">
+                            ${i18n.t('btn_remove_job')}
+                        </button>
+                    </div>
+                    `;
+                    
+                    div.innerHTML = html;
+                    this.elements.jobsContainer.appendChild(div);
+                });
+            },
+
+            showAlert(title, message) {
+                this.elements.alertTitle.textContent = title;
+                this.elements.alertMessage.textContent = message;
+                this.elements.alertOverlay.classList.add('active');
+                this.elements.alertClose.textContent = i18n.t('alert_ok');
+            },
+
+            hideAlert() {
+                this.elements.alertOverlay.classList.remove('active');
+            },
+
+            disableSubmit(disabled) {
+                this.elements.submitBtn.disabled = disabled;
+            },
+
+            escapeHtml(text) {
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            }
+        };
+
+        /**
+         * Initialize Application
+         */
+        document.addEventListener('DOMContentLoaded', () => {
+            UI.init();
+        });
+    </script>
+</body>
+</html>

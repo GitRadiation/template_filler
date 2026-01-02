@@ -1,10 +1,10 @@
 """
-Vistas de la aplicación documentos.
+Views for the documents application.
 
-Define las vistas para:
-- Subida de archivos (UploadView)
-- Consulta de estado (StatusView)
-- Descarga de documentos (DownloadView)
+Defines views for:
+- File upload (UploadView)
+- Status checking (StatusView)
+- Document download (DownloadView)
 """
 
 import json
@@ -25,46 +25,46 @@ logger = logging.getLogger(__name__)
 
 class UploadView(View):
     """
-    Vista para subir archivos y crear trabajos de documento.
+    View for uploading files and creating document jobs.
     
-    GET: Muestra el formulario de subida
-    POST: Procesa la subida y crea un trabajo
+    GET: Shows the upload form
+    POST: Processes the upload and creates a job
     """
     
     def get(self, request):
-        """Muestra el formulario de subida con Drag&Drop."""
-        return render(request, 'documentos/upload.html', {
+        """Shows the upload form with Drag&Drop."""
+        return render(request, 'docs/upload.html', {
             'templates': settings.SUPPORTED_DOCUMENT_TYPES.keys(),
         })
     
     @method_decorator(csrf_exempt)
     def post(self, request):
         """
-        Procesa la subida de archivo y crea un trabajo de documento.
+        Processes file upload and creates a document job.
         
-        Espera:
-            - template_name: Tipo de plantilla
-            - file: Archivo JSON (opcional)
-            - data: JSON directamente en el body (si no hay archivo)
+        Expects:
+            - template_name: Template type
+            - file: JSON file (optional)
+            - data: JSON directly in the body (if no file)
         
-        Retorna:
-            JSON con id del trabajo y status
+        Returns:
+            JSON with job id and status
         """
         try:
             template_name = request.POST.get('template_name')
             
-            # Validar template_name
+            # Validate template_name
             if not template_name or template_name not in settings.SUPPORTED_DOCUMENT_TYPES:
                 return JsonResponse({
                     'error': f'Plantilla no soportada: {template_name}',
                     'supported': list(settings.SUPPORTED_DOCUMENT_TYPES.keys())
                 }, status=400)
             
-            # Obtener datos de entrada
+            # Get input data
             input_data = {}
             input_file = request.FILES.get('file')
             
-            # Si se envía un archivo, leerlo como JSON
+            # If a file is sent, read it as JSON
             if input_file:
                 try:
                     file_content = input_file.read().decode('utf-8')
@@ -74,7 +74,7 @@ class UploadView(View):
                         'error': f'Archivo JSON inválido: {str(e)}'
                     }, status=400)
             else:
-                # Intentar obtener datos del POST
+                # Try to get data from POST
                 data_json = request.POST.get('data')
                 if data_json:
                     try:
@@ -84,14 +84,14 @@ class UploadView(View):
                             'error': f'JSON inválido: {str(e)}'
                         }, status=400)
             
-            # Crear el trabajo
+            # Create the job
             job = DocumentService.create_job(
                 template_name=template_name,
                 input_data=input_data,
                 input_file=input_file
             )
             
-            # Enviar a Celery
+            # Send to Celery
             DocumentService.send_to_celery(job)
             
             logger.info(f'Trabajo creado y enviado a Celery: {job.id}')
@@ -112,20 +112,20 @@ class UploadView(View):
 
 class StatusView(View):
     """
-    Vista para consultar el estado de un trabajo.
+    View to check the status of a document job.
     
-    GET: Retorna el estado del trabajo en formato JSON
+    GET: Returns the job status as JSON
     """
     
     def get(self, request, job_id):
         """
-        Obtiene el estado de un trabajo.
+        Gets the status of a job.
         
         Args:
-            job_id: ID del trabajo
+            job_id: ID of the job
         
-        Retorna:
-            JSON con estado del trabajo
+        Returns:
+            JSON with job status
         """
         try:
             status = DocumentService.get_job_status(job_id)
@@ -146,37 +146,37 @@ class StatusView(View):
 
 class DownloadView(View):
     """
-    Vista para descargar el documento generado.
+    View to download the generated document.
     
-    GET: Descarga el archivo PDF/DOCX/JSON generado
+    GET: Returns the generated file for download
     """
     
     def get(self, request, job_id):
         """
-        Descarga el documento generado.
+        Downloads the generated document.
         
         Args:
-            job_id: ID del trabajo
+            job_id: ID of the job
         
-        Retorna:
-            FileResponse con el archivo generado
+        Returns:
+            FileResponse with the generated file
         """
         try:
             job = get_object_or_404(DocumentJob, id=job_id)
             
-            # Verificar que el trabajo está completado
+            # Check if job is completed
             if not job.is_completed():
                 return JsonResponse({
                     'error': f'Documento aún no está listo. Estado: {job.status}'
                 }, status=400)
             
-            # Verificar que hay archivo de salida
+            # Verify that there is an output file
             if not job.output_file:
                 return JsonResponse({
                     'error': 'Archivo de salida no encontrado'
                 }, status=404)
             
-            # Descargar el archivo
+            # Download the file
             response = FileResponse(job.output_file.open('rb'))
             response['Content-Disposition'] = f'attachment; filename="{job.id}.pdf"'
             
@@ -197,22 +197,22 @@ class DownloadView(View):
 
 class ListJobsView(View):
     """
-    Vista para listar trabajos (para debugging y monitoreo).
+    View to list jobs (for debugging and monitoring).
     
-    GET: Retorna lista de trabajos recientes
+    GET: Returns list of recent jobs
     """
     
     def get(self, request):
         """
-        Lista trabajos con filtros opcionales.
+        Lists jobs with optional filters.
         
-        Parámetros opcionales:
-            - status: Filtrar por estado
-            - template: Filtrar por tipo de plantilla
-            - limit: Número de resultados (default: 50)
-        
-        Retorna:
-            JSON con lista de trabajos
+        Optional parameters:
+            - status: Filter by status
+            - template: Filter by template type
+            - limit: Number of results (default: 50)
+
+        Returns:
+            JSON with list of jobs
         """
         try:
             status = request.GET.get('status')
@@ -243,6 +243,47 @@ class ListJobsView(View):
         
         except Exception as e:
             logger.error(f'Error en ListJobsView: {str(e)}', exc_info=True)
+            return JsonResponse({
+                'error': str(e)
+            }, status=500)
+
+
+class DeleteJobView(View):
+    """
+    View to delete jobs.
+    
+    DELETE: Deletes a job from the database
+    """
+    
+    @method_decorator(csrf_exempt)
+    def delete(self, request, job_id):
+        """
+        Deletes a specified job.
+        
+        Parameters:
+            - job_id: UUID of the job to delete
+        
+        Returns:
+            JSON with confirmation
+        """
+        try:
+            job = get_object_or_404(DocumentJob, id=job_id)
+            job.delete()
+            
+            logger.info(f'Trabajo eliminado: {job_id}')
+            
+            return JsonResponse({
+                'success': True,
+                'message': 'Trabajo eliminado exitosamente'
+            })
+        
+        except DocumentJob.DoesNotExist:
+            return JsonResponse({
+                'error': 'Trabajo no encontrado'
+            }, status=404)
+        
+        except Exception as e:
+            logger.error(f'Error en DeleteJobView: {str(e)}', exc_info=True)
             return JsonResponse({
                 'error': str(e)
             }, status=500)

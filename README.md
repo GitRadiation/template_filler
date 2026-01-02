@@ -1,10 +1,10 @@
-# 📄 Template Filler - Generador Completo de Documentos
+# 📄 Template Filler - Complete Document Generator
 
-Sistema completo para generar documentos profesionales (PDF, DOCX, JSON) utilizando plantillas Jinja2, Django, Celery y Redis. Incluye interfaz drag-and-drop, procesamiento asincrónico y monitoreo en tiempo real.
+Complete system for generating professional documents (PDF, DOCX, JSON) using Jinja2 templates, Django, Celery and Redis. Includes drag-and-drop interface, asynchronous processing and real-time monitoring.
 
 ---
 
-## 📦 Requisitos
+## 📦 Requirements
 
 ### Local
 
@@ -17,19 +17,19 @@ Sistema completo para generar documentos profesionales (PDF, DOCX, JSON) utiliza
 ### Docker
 
 - Docker
-- Podman-compose (o docker-compose)
+- Podman-compose (or docker-compose)
 
 ---
 
-## 🚀 Instalacion Local
+## 🚀 Local Installation
 
-### 1. Clonar y configurar
+### 1. Clone and configure
 
 ```bash
 cd /home/user/UNIVERSIDAD/template_filler
-```text
+```
 
-### 2. Crear archivo `.env` (Opcional, para valores por defecto)
+### 2. Create `.env` file (Optional, for default values)
 
 ```bash
 cat > .env << 'EOF'
@@ -45,279 +45,290 @@ CELERY_RESULT_BACKEND=redis://localhost:6379/1
 ALLOWED_HOSTS=localhost,127.0.0.1
 CORS_ALLOWED_ORIGINS=http://localhost:3000,http://localhost:8000
 EOF
-```text
+```
 
-### 3. Instalar dependencias con Poetry
+### 3. Install dependencies with Poetry
 
 ```bash
 poetry install
-```text
+```
 
-### 4. Configurar PostgreSQL
+### 4. Configure PostgreSQL
 
 ```bash
-# Crear base de datos
+# Create database
 createdb -U postgres djangodb
 
-# Crear usuario
+# Create user
 psql -U postgres -d djangodb -c "CREATE USER djangouser WITH PASSWORD 'secretpassword';"
 
-# Otorgar permisos
+# Grant permissions
 psql -U postgres -d djangodb -c "GRANT ALL PRIVILEGES ON DATABASE djangodb TO djangouser;"
-```text
+```
 
-### 5. Iniciar Redis
+### 5. Start Redis
 
 ```bash
 redis-server
-# O en otra terminal:
+# Or in another terminal:
 # redis-cli
-```text
+```
 
-### 6. Migraciones Django
+### 6. Django Migrations
 
 ```bash
 poetry run python manage.py migrate
-```text
+```
 
-### 7. Crear superusuario
+### 7. Create superuser
 
 ```bash
 poetry run python manage.py createsuperuser
-```text
+```
 
-### 8. Crear directorios necesarios
+### 8. Create necessary directories
 
 ```bash
 mkdir -p generated uploads media staticfiles
-```text
+```
 
-### 9. Ejecutar servidor Django
+### 9. Run Django server
 
 ```bash
 poetry run python manage.py runserver
-# Accesible en: http://localhost:8000
-```text
+# Accessible at: http://localhost:8000
+```
 
-### 10. Ejecutar worker Celery (en otra terminal)
+### 10. Run Celery worker (in another terminal)
 
 ```bash
 poetry run celery -A project worker --loglevel=info
-```text
+```
 
-### 11. (Opcional) Ejecutar Flower para monitoreo
+### 11. (Optional) Run Flower for monitoring
 
 ```bash
 poetry run celery -A project flower
-# Accesible en: http://localhost:5555
-```text
+# Accessible at: http://localhost:5555
+```
 
 ---
 
-## 🐳 Instalacion con Docker
+## 🐳 Docker Installation
 
-### 1. Construir imágenes
+### 1. Build images
 
 ```bash
 docker-compose build
-```text
+```
 
-### 2. Iniciar servicios
+### 2. Start services
 
 ```bash
 docker-compose up -d
-```text
+```
 
-Esto iniciará:
-- **PostgreSQL** en puerto 5432
-- **Redis** en puerto 6379
-- **Django Web** en puerto 8000
-- **Celery Worker** procesando tareas
-- **Flower** (monitoreo) en puerto 5555
+This will start:
 
-### 3. Verificar que está funcionando
+- **PostgreSQL** on port 5432
+- **Redis** on port 6379
+- **Django Web** on port 8000
+- **Celery Worker** processing tasks
+- **Flower** (monitoring) on port 5555
+
+### 3. Verify it's working
 
 ```bash
-# Ver logs
+# View logs
 docker-compose logs -f web
 
-# Verificar salud de servicios
+# Check service health
 docker-compose ps
 
-# Acceder a la aplicación
+# Access the application
 curl http://localhost:8000
-```text
+```
 
-### 4. Crear superusuario (si no se creó automáticamente)
+### 4. Create superuser (if not created automatically)
 
 ```bash
 docker-compose exec web python manage.py createsuperuser
-```text
+```
 
-### 5. Detener servicios
+### 5. Stop services
 
 ```bash
 docker-compose down
 
-# Para borrar volúmenes (CUIDADO - borra datos):
+# To delete volumes (WARNING - deletes data):
 docker-compose down -v
-```text
+```
 
 ---
 
-## 📁 Estructura del Proyecto
+## 📁 Project Structure
 
 ```text
 template_filler/
-├── project/                    # Configuración de Django
+├── project/                    # Django configuration
 │   ├── __init__.py
-│   ├── settings.py             # Configuración completa (incluye Celery)
-│   ├── urls.py                 # URLs raíz
-│   ├── wsgi.py                 # Entry point WSGI
-│   ├── asgi.py                 # Entry point ASGI
-│   └── celery.py               # Configuración de Celery
+│   ├── settings.py             # Complete configuration (includes Celery)
+│   ├── urls.py                 # Root URLs
+│   ├── wsgi.py                 # WSGI entry point
+│   ├── asgi.py                 # ASGI entry point
+│   └── celery.py               # Celery configuration
 │
-├── documentos/                 # Aplicación principal
+├── docs/                 # Main application
 │   ├── models.py               # DocumentJob model
 │   ├── views.py                # UploadView, StatusView, DownloadView
-│   ├── urls.py                 # Rutas /upload/, /status/, /download/
-│   ├── services.py             # DocumentService (lógica de negocio)
-│   ├── tasks.py                # Tareas Celery (generate_pdf, generate_docx, etc)
-│   ├── admin.py                # Admin Django
-│   ├── apps.py                 # Configuración de app
+│   ├── urls.py                 # Routes /upload/, /status/, /download/
+│   ├── services.py             # DocumentService (business logic)
+│   ├── tasks.py                # Celery tasks (generate_pdf, generate_docx, etc)
+│   ├── admin.py                # Django Admin
+│   ├── apps.py                 # App configuration
 │   ├── templates/
-│   │   └── documentos/
-│   │       └── upload.html     # Interfaz drag-and-drop
+│   │   └── docs/
+│   │       └── upload.html     # Drag-and-drop interface
 │   ├── migrations/
 │   │   └── __init__.py
 │   └── management/
 │       └── commands/
-│           └── retry_failed_jobs.py  # Comando para reintentar trabajos
+│           └── retry_failed_jobs.py  # Command to retry jobs
 │
-├── templates_doc/              # Plantillas Jinja2
-│   ├── contract.html.j2        # Plantilla de contrato
-│   ├── invoice.html.j2         # Plantilla de factura
-│   └── certificate.html.j2     # Plantilla de certificado
+├── templates_doc/              # Jinja2 templates
+│   ├── contract.html.j2        # Contract template
+│   ├── invoice.html.j2         # Invoice template
+│   └── certificate.html.j2     # Certificate template
 │
-├── generated/                  # Documentos generados (PDFs)
-├── uploads/                    # Archivos cargados por usuarios
-├── media/                      # Archivos multimedia
-├── staticfiles/                # CSS, JS estático
+├── generated/                  # Generated documents (PDFs)
+├── uploads/                    # User uploaded files
+├── media/                      # Media files
+├── staticfiles/                # Static CSS, JS
 │
-├── docker-compose.yml          # Orquestación Docker
-├── Dockerfile                  # Imagen Docker
-├── manage.py                   # Entry point Django
-├── pyproject.toml              # Dependencias Poetry
-├── example_contract.json       # Ejemplo: entrada para contrato
-├── example_invoice.json        # Ejemplo: entrada para factura
-├── example_certificate.json    # Ejemplo: entrada para certificado
-└── README.md                   # Este archivo
-```text
+├── docker-compose.yml          # Docker orchestration
+├── Dockerfile                  # Docker image
+├── manage.py                   # Django entry point
+├── pyproject.toml              # Poetry dependencies
+├── example_contract.json       # Example: contract input
+├── example_invoice.json        # Example: invoice input
+├── example_certificate.json    # Example: certificate input
+└── README.md                   # This file
+```
 
 ---
 
-## ⚙️ Configuracion de Celery
+## ⚙️ Celery Configuration
 
-### Broker y Backend
+### Broker and Backend
 
-**Broker** (transporte de mensajes): Redis
+**Broker** (message transport): Redis
+
 ```text
 redis://localhost:6379/0
-```text
+```
 
-**Backend** (almacenamiento de resultados): Redis
+**Backend** (results storage): Redis
+
 ```text
 redis://localhost:6379/1
-```text
+```
 
-### Colas Configuradas
+### Configured Queues
 
 ```python
 CELERY_QUEUES = {
-    'default': { ... },      # Tareas genéricas
-    'documents': { ... },    # Tareas de documentos
+    'default': { ... },      # Generic tasks
+    'documents': { ... },    # Document tasks
 }
-```text
+```
 
-### Rutas de Tareas
+### Task Routes
 
 ```python
 CELERY_TASK_ROUTES = {
-    'documentos.tasks.generate_pdf_task': {'queue': 'documents'},
-    'documentos.tasks.generate_docx_task': {'queue': 'documents'},
-    'documentos.tasks.generate_json_task': {'queue': 'documents'},
+    'docs.tasks.generate_pdf_task': {'queue': 'documents'},
+    'docs.tasks.generate_docx_task': {'queue': 'documents'},
+    'docs.tasks.generate_json_task': {'queue': 'documents'},
 }
-```text
+```
 
-### Configuración de Reintentos
+### Retry Configuration
 
 ```python
 CELERY_TASK_MAX_RETRIES = 3
-CELERY_TASK_DEFAULT_RETRY_DELAY = 60  # segundos
-CELERY_TASK_TIME_LIMIT = 30 * 60  # 30 minutos
-CELERY_TASK_SOFT_TIME_LIMIT = 25 * 60  # 25 minutos
-```text
+CELERY_TASK_DEFAULT_RETRY_DELAY = 60  # seconds
+CELERY_TASK_TIME_LIMIT = 30 * 60  # 30 minutes
+CELERY_TASK_SOFT_TIME_LIMIT = 25 * 60  # 25 minutes
+```
 
-### Ejecutar Worker
+### Run Worker
 
-**Local con Poetry:**
+**Local with Poetry:**
+
 ```bash
 poetry run celery -A project worker --loglevel=info
-```text
+```
 
-**Local con workers específicos:**
+**Local with specific workers:**
+
 ```bash
-# Worker para cola 'documents'
+# Worker for 'documents' queue
 poetry run celery -A project worker -Q documents --loglevel=info
 
-# Múltiples workers
+# Multiple workers
 poetry run celery -A project worker -Q default,documents --concurrency=4
-```text
+```
 
 **Docker:**
+
 ```bash
 docker-compose up worker
-```text
+```
 
 ---
 
 ## 🔌 API Endpoints
 
 ### 1. Subir Documento (GET/POST)
+
 ```text
-GET /api/documentos/upload/
-POST /api/documentos/upload/
+GET /api/docs/upload/
+POST /api/docs/upload/
 ```text
 
-**Respuesta POST exitosa (201):**
+**Successful POST response (201):**
 ```json
 {
   "success": true,
   "job_id": "550e8400-e29b-41d4-a716-446655440000",
   "status": "pending",
-  "message": "Documento en proceso de generación"
+  "message": "Document generation in progress"
 }
-```text
+```
 
-**Parámetros POST:**
+**POST Parameters:**
+
 - `template_name` (required): 'contract' | 'invoice' | 'certificate'
-- `file` (required): Archivo JSON con datos
+- `file` (required): JSON file with data
 
-**Ejemplo con cURL:**
+**Example with cURL:**
+
 ```bash
-curl -X POST http://localhost:8000/api/documentos/upload/ \
+curl -X POST http://localhost:8000/api/docs/upload/ \
   -F "template_name=contract" \
   -F "file=@example_contract.json"
-```text
+```
 
 ---
 
-### 2. Consultar Estado
-```text
-GET /api/documentos/status/<job_id>/
-```text
+### 2. Check Status
 
-**Respuesta:**
+```text
+GET /api/docs/status/<job_id>/
+```
+
+**Response:**
+
 ```json
 {
   "id": "550e8400-e29b-41d4-a716-446655440000",
@@ -329,364 +340,392 @@ GET /api/documentos/status/<job_id>/
   "error_message": null,
   "output_url": null
 }
-```text
+```
 
-**Estados posibles:**
-- `pending`: Esperando procesamiento
-- `running`: En proceso
-- `completed`: Completado exitosamente
-- `failed`: Error durante la generación
+**Possible states:**
 
-**Ejemplo:**
+- `pending`: Waiting for processing
+- `running`: In progress
+- `completed`: Successfully completed
+- `failed`: Error during generation
+
+**Example:**
+
 ```bash
-curl http://localhost:8000/api/documentos/status/550e8400-e29b-41d4-a716-446655440000/
-```text
+curl http://localhost:8000/api/docs/status/550e8400-e29b-41d4-a716-446655440000/
+```
 
 ---
 
-### 3. Descargar Documento
-```text
-GET /api/documentos/download/<job_id>/
-```text
+### 3. Download Document
 
-**Respuesta:** Archivo PDF descargado
+```text
+GET /api/docs/download/<job_id>/
+```
 
-**Ejemplo:**
+**Response:** PDF file downloaded
+
+**Example:**
+
 ```bash
-curl -o documento.pdf http://localhost:8000/api/documentos/download/550e8400-e29b-41d4-a716-446655440000/
-```text
+curl -o documento.pdf http://localhost:8000/api/docs/download/550e8400-e29b-41d4-a716-446655440000/
+```
 
 ---
 
-### 4. Listar Trabajos (Debugging)
-```text
-GET /api/documentos/jobs/
-```text
+### 4. List Jobs (Debugging)
 
-**Parámetros opcionales:**
+```text
+GET /api/docs/jobs/
+```
+
+**Optional parameters:**
+
 - `status`: 'pending' | 'running' | 'completed' | 'failed'
 - `template`: 'contract' | 'invoice' | 'certificate'
-- `limit`: Número máximo (default: 50)
+- `limit`: Max number (default: 50)
 
-**Ejemplo:**
+**Example:**
+
 ```bash
-curl "http://localhost:8000/api/documentos/jobs/?status=completed&limit=10"
-```text
+curl "http://localhost:8000/api/docs/jobs/?status=completed&limit=10"
+```
 
 ---
 
-## 📋 Ejemplos de Uso
+## 📋 Usage Examples
 
-### Ejemplo 1: Generar Contrato
+### Example 1: Generate Contract
 
-**1. Preparar datos JSON:**
+**1. Prepare JSON data:**
+
 ```bash
-cat > datos_contrato.json << 'EOF'
+cat > contract_data.json << 'EOF'
 {
-  "contracting_party_name": "Empresa ABC SpA",
+  "contracting_party_name": "ABC Company Inc",
   "contracting_party_id": "12.345.678-9",
-  "contracting_party_address": "Calle Principal 123, Santiago",
-  "contractor_name": "Juan Pérez García",
+  "contracting_party_address": "Main Street 123, Santiago",
+  "contractor_name": "John Doe",
   "contractor_id": "98.765.432-1",
-  "contractor_address": "Avenida Secundaria 456, Santiago",
-  "contract_object": "Servicios de consultoría empresarial",
+  "contractor_address": "Secondary Avenue 456, Santiago",
+  "contract_object": "Business consulting services",
   "start_date": "01/01/2025",
   "end_date": "31/12/2025",
-  "duration": "12 meses",
+  "duration": "12 months",
   "services": [
     {
-      "description": "Consultoría Fase I",
+      "description": "Consulting Phase I",
       "unit_price": "5000000",
       "quantity": 1,
       "total": "5000000"
     }
   ],
   "total_amount": "5000000",
-  "payment_method": "Transferencia bancaria",
-  "terms_and_conditions": "Ambas partes acuerdan..."
+  "payment_method": "Bank transfer",
+  "terms_and_conditions": "Both parties agree..."
 }
 EOF
-```text
+```
 
-**2. Enviar al servidor:**
+**2. Send to server:**
+
 ```bash
-curl -X POST http://localhost:8000/api/documentos/upload/ \
+curl -X POST http://localhost:8000/api/docs/upload/ \
   -F "template_name=contract" \
-  -F "file=@datos_contrato.json"
-```text
+  -F "file=@contract_data.json"
+```
 
-**3. Respuesta:**
+**3. Response:**
+
 ```json
 {
   "success": true,
   "job_id": "550e8400-e29b-41d4-a716-446655440000",
   "status": "pending"
 }
-```text
+```
 
-**4. Verificar estado:**
-```bash
-curl http://localhost:8000/api/documentos/status/550e8400-e29b-41d4-a716-446655440000/
-```text
+**4. Check status:**
 
-**5. Descargar cuando esté completado:**
 ```bash
-curl -o contrato.pdf \
-  http://localhost:8000/api/documentos/download/550e8400-e29b-41d4-a716-446655440000/
-```text
+curl http://localhost:8000/api/docs/status/550e8400-e29b-41d4-a716-446655440000/
+```
+
+**5. Download when completed:**
+
+```bash
+curl -o contract.pdf \
+  http://localhost:8000/api/docs/download/550e8400-e29b-41d4-a716-446655440000/
+```
 
 ---
 
-### Ejemplo 2: Usar interfaz Web (Drag & Drop)
+### Example 2: Use Web Interface (Drag & Drop)
 
-**1. Abrir en navegador:**
-```text
-http://localhost:8000/api/documentos/upload/
-```text
+**1. Open in browser:**
 
-**2. Pasos:**
-   - Seleccionar tipo de plantilla (Contrato, Factura, Certificado)
-   - Arrastrar archivo JSON o hacer clic para seleccionar
-   - Hacer clic en "Generar Documento"
-   - Esperar a que complete
-   - Descargar PDF
+```text
+http://localhost:8000/api/docs/upload/
+```
+
+**2. Steps:**
+
+- Select template type (Contract, Invoice, Certificate)
+- Drag JSON file or click to select
+- Click "Generate Document"
+- Wait for it to complete
+- Download PDF
 
 ---
 
-### Ejemplo 3: Generar Factura
+### Example 3: Generate Invoice
 
 ```bash
-# 1. Con archivo
-curl -X POST http://localhost:8000/api/documentos/upload/ \
+# 1. With file
+curl -X POST http://localhost:8000/api/docs/upload/ \
   -F "template_name=invoice" \
   -F "file=@example_invoice.json"
 
-# 2. Con JSON directo (POST form data)
-curl -X POST http://localhost:8000/api/documentos/upload/ \
+# 2. With direct JSON (POST form data)
+curl -X POST http://localhost:8000/api/docs/upload/ \
   -F "template_name=invoice" \
-  -F "data={\"company_name\": \"Tech Solutions S.A.\", ...}"
-```text
+  -F "data={\"company_name\": \"Tech Solutions Inc\", ...}"
+```
 
 ---
 
-### Ejemplo 4: Reintentar Trabajos Fallidos
+### Example 4: Retry Failed Jobs
 
 ```bash
-# Reintentar últimos 10 trabajos fallidos
+# Retry last 10 failed jobs
 poetry run python manage.py retry_failed_jobs --limit 10
 
-# Reintentar trabajos de últimas 24 horas
+# Retry jobs from last 24 hours
 poetry run python manage.py retry_failed_jobs --hours 24
-```text
+```
 
 ---
 
-### Ejemplo 5: Panel Administrativo
+### Example 5: Admin Panel
 
-**1. Acceder:**
+**1. Access:**
+
 ```text
 http://localhost:8000/admin/
-```text
+```
 
-**2. Credenciales (por defecto con Docker):**
-- Usuario: `admin`
-- Contraseña: `admin123`
+**2. Credentials (default with Docker):**
 
-**3. Funciones:**
-   - Ver todos los trabajos de documentos
-   - Filtrar por estado, plantilla, fecha
-   - Reintentar trabajos fallidos (botón de acción)
-   - Marcar como pendiente
-   - Descargar documentos generados
+- Username: `admin`
+- Password: `admin123`
+
+**3. Functions:**
+
+- View all document jobs
+- Filter by state, template, date
+- Retry failed jobs (action button)
+- Mark as pending
+- Download generated documents
 
 ---
 
-## 📊 Monitoreo con Flower
+## 📊 Monitoring with Flower
 
-**Acceder a Flower:**
+**Access Flower:**
+
 ```text
 http://localhost:5555
-```text
+```
 
-**Características:**
-- Monitor en tiempo real de workers
-- Historial de tareas
-- Estadísticas por segundo
-- Cancelar tareas
+**Features:**
+
+- Real-time worker monitoring
+- Task history
+- Per-second statistics
+- Cancel tasks
 - Pool management
-- Gráficos de desempeño
+- Performance graphs
 
-**Comandos útiles:**
+**Useful commands:**
 
 ```bash
-# Iniciar Flower (local)
+# Start Flower (local)
 poetry run celery -A project flower
 
-# Con puerto personalizado
+# With custom port
 poetry run celery -A project flower --port=5556
 
-# Con persistencia de datos
+# With data persistence
 poetry run celery -A project flower --persistent=True --db=flower.db
-```text
+```
 
 ---
 
 ## 🔍 Troubleshooting
 
-### Problema: "No se ha podido resolver la importación 'decouple'"
+### Problem: "Could not resolve import 'decouple'"
 
-**Solución:**
+**Solution:**
+
 ```bash
 poetry install
-# O instalar manualmente:
+# Or install manually:
 pip install python-decouple
-```text
+```
 
 ---
 
-### Problema: Celery no procesa tareas
+### Problem: Celery not processing tasks
 
-**Verificar:**
+**Verify:**
 
 ```bash
-# 1. Redis está corriendo
+# 1. Redis is running
 redis-cli ping
-# Debe retornar: PONG
+# Should return: PONG
 
-# 2. Worker está ejecutándose
+# 2. Worker is running
 poetry run celery -A project worker --loglevel=debug
 
-# 3. Cola está configurada correctamente
-# Ver en project/settings.py: CELERY_BROKER_URL
-```text
+# 3. Queue is configured correctly
+# Check in project/settings.py: CELERY_BROKER_URL
+```
 
 ---
 
-### Problema: Base de datos no existe
+### Problem: Database does not exist
 
-**Solución:**
+**Solution:**
+
 ```bash
 # PostgreSQL
 createdb -U postgres djangodb
 psql -U postgres -d djangodb -c "CREATE USER djangouser WITH PASSWORD 'secretpassword';"
 
-# Luego migrar
+# Then migrate
 poetry run python manage.py migrate
-```text
+```
 
 ---
 
-### Problema: Puerto 8000 ya está en uso
+### Problem: Port 8000 already in use
 
-**Solución:**
+**Solution:**
+
 ```bash
-# Usar puerto diferente
+# Use different port
 poetry run python manage.py runserver 0.0.0.0:8080
 
-# O liberar puerto
+# Or free port
 lsof -i :8000
 kill -9 <PID>
-```text
+```
 
 ---
 
-### Problema: WeasyPrint no genera PDF
+### Problem: WeasyPrint doesn't generate PDF
 
-**Verificar dependencias:**
+**Verify dependencies:**
+
 ```bash
-# En Ubuntu/Debian
+# On Ubuntu/Debian
 sudo apt-get install libffi-dev libcairo2-dev libpango1.0-dev libpangoft2-1.0-0
 
-# En macOS
+# On macOS
 brew install libffi cairo pango gdk-pixbuf
 
-# Reinstalar WeasyPrint
+# Reinstall WeasyPrint
 pip install --force-reinstall WeasyPrint
-```text
+```
 
 ---
 
-### Problema: Tareas quedan "pending" indefinidamente
+### Problem: Tasks stuck in "pending" indefinitely
 
-**Solución:**
+**Solution:**
 
 ```bash
-# 1. Revisar logs del worker
+# 1. Check worker logs
 docker-compose logs worker
 
-# 2. Revisar estado en Redis
+# 2. Check status in Redis
 redis-cli
 > KEYS celery*
 > HGETALL celery-task-meta-<task_id>
 
-# 3. Limpiar tareas viejas
+# 3. Clean old tasks
 poetry run python manage.py retry_failed_jobs --hours 1
 
-# 4. Reiniciar worker
+# 4. Restart worker
 docker-compose restart worker
-```text
+```
 
 ---
 
-## 📈 Escalado
+## 📈 Scaling
 
-### Aumentar Concurrencia de Workers
+### Increase Worker Concurrency
 
 **Docker Compose:**
+
 ```yaml
 worker:
   command: celery -A project worker -Q default,documents --concurrency=8
-  # Aumentar concurrency de 4 a 8
-```text
+  # Increase concurrency from 4 to 8
+```
 
 **Local:**
+
 ```bash
 poetry run celery -A project worker -Q default,documents --concurrency=8
-```text
+```
 
 ---
 
-### Múltiples Workers Especializados
+### Multiple Specialized Workers
 
 ```bash
-# Terminal 1: Worker para documentos
+# Terminal 1: Worker for documents
 poetry run celery -A project worker -Q documents --concurrency=4 -n worker1@%h
 
-# Terminal 2: Worker para tareas por defecto
+# Terminal 2: Worker for default tasks
 poetry run celery -A project worker -Q default --concurrency=2 -n worker2@%h
-```text
+```
 
-**En Docker Compose:**
+**In Docker Compose:**
+
 ```yaml
 worker-docs:
   command: celery -A project worker -Q documents --concurrency=4 -n worker-docs@%h
 
 worker-default:
   command: celery -A project worker -Q default --concurrency=2 -n worker-default@%h
-```text
+```
 
 ---
 
-### Optimizar Redis
+### Optimize Redis
 
-**Configuración en Redis:**
+**Redis Configuration:**
+
 ```text
 maxmemory 512mb
 maxmemory-policy allkeys-lru
-```text
+```
 
-**En docker-compose.yml:**
+**In docker-compose.yml:**
+
 ```yaml
 redis:
   command: redis-server --maxmemory 512mb --maxmemory-policy allkeys-lru
-```text
+```
 
 ---
 
-### Usar Gunicorn en desarrollo
+### Use Gunicorn in development
 
 ```bash
-# Con múltiples workers
+# With multiple workers
 poetry run gunicorn project.wsgi:application \
   --bind 0.0.0.0:8000 \
   --workers 4 \
@@ -694,15 +733,15 @@ poetry run gunicorn project.wsgi:application \
   --worker-class gthread \
   --access-logfile - \
   --error-logfile -
-```text
+```
 
 ---
 
-## 🎨 Personalizar Plantillas
+## 🎨 Customize Templates
 
-### Crear nueva plantilla
+### Create new template
 
-**1. Crear archivo `templates_doc/reporte.html.j2`:**
+**1. Create file `templates_doc/report.html.j2`:**
 
 ```html
 <!DOCTYPE html>
@@ -714,108 +753,108 @@ poetry run gunicorn project.wsgi:application \
   </style>
 </head>
 <body>
-  <h1>{{ titulo }}</h1>
-  <p>{{ contenido }}</p>
-  <p>Generado: {% now "d/m/Y H:i" %}</p>
+  <h1>{{ title }}</h1>
+  <p>{{ content }}</p>
+  <p>Generated: {% now "d/m/Y H:i" %}</p>
 </body>
 </html>
-```text
+```
 
-**2. Registrar en `settings.py`:**
+**2. Register in `settings.py`:**
 
 ```python
 SUPPORTED_DOCUMENT_TYPES = {
     'contract': 'contract.html.j2',
     'invoice': 'invoice.html.j2',
     'certificate': 'certificate.html.j2',
-    'reporte': 'reporte.html.j2',  # NUEVA
+    'report': 'report.html.j2',  # NEW
 }
-```text
+```
 
-**3. Usar:**
+**3. Use:**
 
 ```bash
-curl -X POST http://localhost:8000/api/documentos/upload/ \
-  -F "template_name=reporte" \
-  -F "file=@mi_reporte.json"
-```text
+curl -X POST http://localhost:8000/api/docs/upload/ \
+  -F "template_name=report" \
+  -F "file=@my_report.json"
+```
 
 ---
 
-## 📝 Notas Importantes
+## 📝 Important Notes
 
-### Versiones de Imágenes Docker
+### Docker Image Versions
 
-Para fijar versiones específicas:
+To pin specific versions:
 
 ```yaml
-# En docker-compose.yml
+# In docker-compose.yml
 db:
-  image: bitnami/postgresql:17.1  # Versión específica
+  image: bitnami/postgresql:17.1  # Specific version
 redis:
-  image: bitnami/redis:7.2        # Versión específica
-```text
+  image: bitnami/redis:7.2        # Specific version
+```
 
 ---
 
-### Variables de Entorno Críticas
+### Critical Environment Variables
 
 ```bash
 # .env
-SECRET_KEY=tu-clave-secreta-de-produccion
-DEBUG=False  # SIEMPRE False en producción
-ALLOWED_HOSTS=tu-dominio.com
-DATABASE_PASSWORD=contraseña-fuerte
-DJANGO_SUPERUSER_PASSWORD=contraseña-fuerte
-```text
+SECRET_KEY=your-production-secret-key
+DEBUG=False  # ALWAYS False in production
+ALLOWED_HOSTS=your-domain.com
+DATABASE_PASSWORD=strong-password
+DJANGO_SUPERUSER_PASSWORD=strong-password
+```
 
 ---
 
-### Backup de Base de Datos
+### Database Backup
 
 ```bash
-# Exportar PostgreSQL
+# Export PostgreSQL
 docker-compose exec db pg_dump -U djangouser djangodb > backup.sql
 
-# Restaurar
+# Restore
 docker-compose exec db psql -U djangouser djangodb < backup.sql
-```text
+```
 
 ---
 
-### Limpieza de Datos
+### Data Cleanup
 
 ```bash
-# Eliminar documentos generados antiguos
+# Delete old generated documents
 find generated/ -mtime +30 -delete
 
-# Limpiar uploads
+# Clean uploads
 find uploads/ -mtime +7 -delete
 
-# Vaciar caché Redis
+# Clear Redis cache
 redis-cli FLUSHALL
-```text
+```
 
 ---
 
-## 📞 Soporte
+## 📞 Support
 
-Para reportar problemas o sugerencias:
+To report issues or suggestions:
 
-1. Revisar los logs: `docker-compose logs -f`
-2. Verificar estado de servicios: `docker-compose ps`
-3. Probar con ejemplos: `example_contract.json`, etc.
-4. Revisar la sección [Troubleshooting](#troubleshooting)
-
----
-
-## 📄 Licencia
-
-Este proyecto es de código abierto. Úsalo libremente.
+1. Check the logs: `docker-compose logs -f`
+2. Verify service health: `docker-compose ps`
+3. Test with examples: `example_contract.json`, etc.
+4. Review the [Troubleshooting](#-troubleshooting) section
 
 ---
 
-**Última actualización:** Enero 2025  
-**Versión de Django:** 6.0+  
-**Versión de Celery:** 5.6+  
-**Versión de Python:** 3.12+
+## 📄 License
+
+This project is open source. Use it freely.
+
+---
+
+**Last updated:** January 2025  
+**Django version:** 6.0+  
+**Celery version:** 5.6+  
+**Python version:** 3.12+

@@ -1,8 +1,9 @@
 """
-Configuración de Django para el proyecto Template Filler.
+Settings configuration for the Django project.
 
-Incluye configuración de base de datos, aplicaciones instaladas,
-Celery, media files y otras opciones esenciales.
+Include all necessary settings for the application,
+database, middleware, installed apps, templates,
+static files, and third-party integrations.
 """
 
 from pathlib import Path
@@ -39,7 +40,7 @@ INSTALLED_APPS = [
     'widget_tweaks',
     
     # Aplicaciones locales
-    'documentos.apps.DocumentosConfig',
+    'docs.apps.DocsConfig',
 ]
 
 MIDDLEWARE = [
@@ -58,7 +59,7 @@ ROOT_URLCONF = 'project.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [BASE_DIR / 'documentos' / 'templates'],
+        'DIRS': [BASE_DIR / 'docs' / 'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -116,7 +117,15 @@ USE_TZ = True
 
 # Static files (CSS, JavaScript, Images)
 STATIC_URL = '/static/'
+
+# Directory where collectstatic will copy all static files
 STATIC_ROOT = BASE_DIR / 'staticfiles'
+
+# Additional directories to look for static files
+STATICFILES_DIRS = [
+    BASE_DIR / 'docs' / 'static',
+]
+
 
 # Media files (Uploads)
 MEDIA_URL = '/media/'
@@ -173,9 +182,9 @@ CELERY_TASK_DEFAULT_RETRY_DELAY = 60  # segundos
 
 # Configuración de colas
 CELERY_TASK_ROUTES = {
-    'documentos.tasks.generate_pdf_task': {'queue': 'documents'},
-    'documentos.tasks.generate_docx_task': {'queue': 'documents'},
-    'documentos.tasks.generate_json_task': {'queue': 'documents'},
+    'docs.tasks.generate_pdf_task': {'queue': 'documents'},
+    'docs.tasks.generate_docx_task': {'queue': 'documents'},
+    'docs.tasks.generate_json_task': {'queue': 'documents'},
 }
 
 CELERY_QUEUES = {
@@ -207,7 +216,7 @@ CELERY_LOGLEVEL = config('CELERY_LOGLEVEL', default='info')
 # Directorio de plantillas Jinja2
 TEMPLATES_DOC_DIR = BASE_DIR / 'templates_doc'
 
-# Tipos de documentos soportados
+# Tipos de docs soportados
 SUPPORTED_DOCUMENT_TYPES = {
     'contract': 'contract.html.j2',
     'invoice': 'invoice.html.j2',

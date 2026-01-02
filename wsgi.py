@@ -1,24 +1,24 @@
 """
-Configuración de Django para producción/desarrollo local.
+Django configuration for production/local development.
 
-Este archivo proporciona un punto de entrada para WSGI compatible
-con servidores como Gunicorn y similares.
+This file provides an entry point for WSGI compatible
+with servers such as Gunicorn and similar ones.
 """
 
 import os
 from pathlib import Path
 
-# Establecer el módulo de configuración
+# Set the settings module
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'project.settings')
 
-# Directorio base del proyecto
+# Base directory of the project
 BASE_DIR = Path(__file__).resolve().parent
 
-# Asegurarse de que el directorio está en el path de Python
+# Ensure the directory is in the Python path
 if str(BASE_DIR) not in os.sys.path:
     os.sys.path.insert(0, str(BASE_DIR))
 
-# Obtener la aplicación WSGI
+# Get the WSGI application
 from django.core.wsgi import get_wsgi_application
 
 application = get_wsgi_application()

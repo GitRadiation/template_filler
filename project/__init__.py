@@ -1,10 +1,10 @@
 """
-Inicialización de la aplicación Django.
+Initialize the project package.
 
-Asegura que Celery se carga cuando Django se inicia.
+Ensures that the Celery application is loaded when Django starts.
 """
 
-# Importar la aplicación Celery para inicializarla
+# Import the Celery application instance
 from .celery import app as celery_app
 
 __all__ = ['celery_app']

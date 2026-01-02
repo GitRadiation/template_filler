@@ -1,33 +1,33 @@
 """
-Configuración de Celery para Django.
+Celery configuration for Django.
 
-Este módulo configura Celery como la cola de tareas asincrónicas,
-utilizando Redis como broker y también como backend de resultados.
+This module configures Celery as the asynchronous task queue,
+using Redis as the broker and also as the result backend.
 """
 
 import os
 
 from celery import Celery
 
-# Establecer el módulo de configuración de Django por defecto
+# Set the default Django settings module
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'project.settings')
 
-# Crear la aplicación Celery
+# Create the Celery application
 app = Celery('template_filler')
 
-# Cargar la configuración desde Django settings
-# El namespace='CELERY' significa que todas las configuraciones de Celery
-# en settings.py deben estar prefijadas con CELERY_
+# Load configuration from Django settings
+# The namespace='CELERY' means that all Celery-related settings
+# in settings.py must be prefixed with CELERY_
 app.config_from_object('django.conf:settings', namespace='CELERY')
 
-# Descubrir automáticamente tareas desde todos los módulos tasks.py
-# de las aplicaciones registradas
+# Automatically discover tasks from all tasks.py modules
+# in registered Django applications
 app.autodiscover_tasks()
 
 
 @app.task(bind=True)
 def debug_task(self):
     """
-    Tarea de debug para verificar que Celery está funcionando correctamente.
+    Debug task to verify that Celery is working correctly.
     """
     print(f'Request: {self.request!r}')

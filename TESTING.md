@@ -1,54 +1,54 @@
-# 🧪 Guía de Pruebas - Template Filler
+# 🧪 Testing Guide - Template Filler
 
-Esta guía te muestra cómo probar cada componente del sistema step by step.
+This guide shows you how to test each component of the system step by step.
 
-## ✅ Checklist Pre-Lanzamiento
+## ✅ Pre-Launch Checklist
 
-Antes de lanzar a producción, verifica:
+Before launching to production, verify:
 
-- [ ] Base de datos PostgreSQL está corriendo
-- [ ] Redis está corriendo
-- [ ] Variables de entorno están configuradas
-- [ ] Migraciones Django están aplicadas
-- [ ] Superusuario creado
-- [ ] Static files recolectados
-- [ ] Directorios de salida creados
-- [ ] Worker Celery está ejecutándose
-- [ ] Acceso a <http://localhost:8000>
+- [ ] PostgreSQL database is running
+- [ ] Redis is running
+- [ ] Environment variables are configured
+- [ ] Django migrations are applied
+- [ ] Superuser created
+- [ ] Static files collected
+- [ ] Output directories created
+- [ ] Celery Worker is running
+- [ ] Access to <http://localhost:8000>
 
 ---
 
-## 🚀 Prueba 1: Configuración Básica
+## 🚀 Test 1: Basic Configuration
 
-### Paso 1: Verificar instalación de Django
+### Step 1: Verify Django installation
 
 ```bash
 poetry run python manage.py --version
-# Debe mostrar: Django 6.x.x
+# Should show: Django 6.x.x
 ```
 
-### Paso 2: Ejecutar migraciones
+### Step 2: Run migrations
 
 ```bash
 poetry run python manage.py migrate
-# Debe mostrar:
+# Should show:
 # Operations to perform:
 #   Apply all migrations: admin, auth, ...
 # Running migrations:
 #   Applying documentos.0001_initial... OK
 ```
 
-### Paso 3: Crear superusuario
+### Step 3: Create superuser
 
 ```bash
 poetry run python manage.py createsuperuser
-# Ingresa:
+# Enter:
 # Username: admin
 # Email: admin@example.com
 # Password: admin123
 ```
 
-### Paso 4: Verificar estructura de BD
+### Step 4: Verify database structure
 
 ```bash
 poetry run python manage.py dbshell
@@ -58,31 +58,31 @@ poetry run python manage.py dbshell
 
 ---
 
-## 🔄 Prueba 2: Sistema de Colas (Celery + Redis)
+## 🔄 Test 2: Queue System (Celery + Redis)
 
-### Paso 1: Verificar conexión a Redis
+### Step 1: Verify Redis connection
 
 ```bash
 redis-cli ping
-# Debe retornar: PONG
+# Should return: PONG
 
-# Verificar la estructura de Redis
+# Verify Redis structure
 redis-cli
 > INFO stats
 > KEYS celery*
 > QUIT
 ```
 
-### Paso 2: Iniciar Worker Celery
+### Step 2: Start Celery Worker
 
 ```bash
 poetry run celery -A project worker --loglevel=debug
 ```
 
-**Salida esperada:**
+**Expected output:**
 
 ```bash
- -------------- celery@usuario v5.6.0 (sun-hills)
+ -------------- celery@user v5.6.0 (sun-hills)
 --- ***** -----
 -- ******* ----
 - *** --- * ---
@@ -104,7 +104,7 @@ poetry run celery -A project worker --loglevel=debug
   . documentos.tasks.generate_pdf_task
 ```
 
-### Paso 3: Probar tarea de debug (en otra terminal)
+### Step 3: Test debug task (in another terminal)
 
 ```bash
 poetry run python -c "
@@ -113,28 +113,28 @@ result = app.send_task('project.tasks.debug_task')
 print('Task ID:', result.id)
 "
 
-# Verificar en el worker que procesa la tarea
+# Verify in the worker that it processes the task
 ```
 
 ---
 
-## 📄 Prueba 3: Generación de Documentos
+## 📄 Test 3: Document Generation
 
-### Prueba 3a: Generar PDF (Contrato)
+### Test 3a: Generate PDF (Contract)
 
-### Terminal 1: Iniciar Django
+### Terminal 1: Start Django
 
 ```bash
 poetry run python manage.py runserver
 ```
 
-### Terminal 2: Iniciar Worker
+### Terminal 2: Start Worker
 
 ```bash
 poetry run celery -A project worker --loglevel=info
 ```
 
-### Terminal 3: Enviar documento
+### Terminal 3: Send document
 
 ```bash
 curl -X POST http://localhost:8000/api/documentos/upload/ \
@@ -142,498 +142,498 @@ curl -X POST http://localhost:8000/api/documentos/upload/ \
   -F "file=@example_contract.json"
 ```
 
-**Respuesta esperada:**
+**Expected response:**
 
 ```json
 {
   "success": true,
   "job_id": "550e8400-e29b-41d4-a716-446655440000",
   "status": "pending",
-  "message": "Documento en proceso de generación"
+  "message": "Document generation in progress"
 }
 ```
 
-### Verificar estado
+### Check status
 
 ```bash
 curl http://localhost:8000/api/documentos/status/550e8400-e29b-41d4-a716-446655440000/
 ```
 
-### Esperar y ver cambio de estado
+### Wait and see status change
 
 ```json
 {
-  "status": "running",  // Luego: "completed"
+  "status": "running",  // Later: "completed"
   ...
 }
 ```
 
-### Descargar cuando complete
+### Download when complete
 
 ```bash
-curl -o contrato.pdf \
+curl -o contract.pdf \
   http://localhost:8000/api/documentos/download/550e8400-e29b-41d4-a716-446655440000/
 
-# Verificar archivo
-file contrato.pdf
-# Debe mostrar: PDF document, version 1.4
+# Verify file
+file contract.pdf
+# Should show: PDF document, version 1.4
 ```
 
 ---
 
-### Prueba 3b: Generar Factura
+### Test 3b: Generate Invoice
 
 ```bash
-# Enviar
+# Send
 curl -X POST http://localhost:8000/api/documentos/upload/ \
   -F "template_name=invoice" \
   -F "file=@example_invoice.json"
 
-# Copiar job_id y descargar cuando complete
-curl -o factura.pdf \
+# Copy job_id and download when complete
+curl -o invoice.pdf \
   http://localhost:8000/api/documentos/download/<job_id>/
 ```
 
 ---
 
-### Prueba 3c: Generar Certificado
+### Test 3c: Generate Certificate
 
 ```bash
-# Enviar
+# Send
 curl -X POST http://localhost:8000/api/documentos/upload/ \
   -F "template_name=certificate" \
   -F "file=@example_certificate.json"
 
-# Descargar
-curl -o certificado.pdf \
+# Download
+curl -o certificate.pdf \
   http://localhost:8000/api/documentos/download/<job_id>/
 ```
 
 ---
 
-## 🖥️ Prueba 4: Interfaz Web Drag & Drop
+## 🖥️ Test 4: Drag & Drop Web Interface
 
-### Paso 1: Abrir navegador
+### Step 1: Open browser
 
 ```text
 http://localhost:8000/api/documentos/upload/
 ```
 
-### Paso 2: Probar funcionalidades
+### Step 2: Test functionalities
 
-### Test 1: Seleccionar plantilla
+### Test 1: Select template
 
-- [ ] Seleccionar "Contrato"
-- [ ] Verificar que el dropdown funciona
+- [ ] Select "Contract"
+- [ ] Verify dropdown works
 
 ### Test 2: Drag & Drop
 
-- [ ] Arrastra `example_contract.json` a la zona
-- [ ] Verifica que aparezca el nombre del archivo
-- [ ] Verifica que desaparece el error de validación
+- [ ] Drag `example_contract.json` to zone
+- [ ] Verify file name appears
+- [ ] Verify validation error disappears
 
-### Test 3: Click para seleccionar
+### Test 3: Click to select
 
-- [ ] Haz clic en la zona
-- [ ] Selecciona `example_invoice.json`
-- [ ] Verifica que aparezca el nombre
+- [ ] Click in zone
+- [ ] Select `example_invoice.json`
+- [ ] Verify name appears
 
-### Test 4: Generar documento
+### Test 4: Generate document
 
-- [ ] Selecciona "Factura"
-- [ ] Selecciona `example_invoice.json`
-- [ ] Haz clic en "Generar Documento"
-- [ ] Verifica que aparezca spinner
-- [ ] Espera a que complete
-- [ ] Verifica que aparezca botón "Descargar"
+- [ ] Select "Invoice"
+- [ ] Select `example_invoice.json`
+- [ ] Click "Generate Document"
+- [ ] Verify spinner appears
+- [ ] Wait for completion
+- [ ] Verify "Download" button appears
 
-### Test 5: Descargar
+### Test 5: Download
 
-- [ ] Haz clic en "Descargar Documento"
-- [ ] Verifica que se descargue el PDF
+- [ ] Click "Download Document"
+- [ ] Verify PDF downloads
 
 ---
 
-## 📊 Prueba 5: Monitoreo con Flower
+## 📊 Test 5: Monitoring with Flower
 
-### Paso 1: Iniciar Flower
+### Step 1: Start Flower
 
 ```bash
 poetry run celery -A project flower
 ```
 
-### Paso 2: Acceder al dashboard
+### Step 2: Access dashboard
 
 ```text
 http://localhost:5555
 ```
 
-### Paso 3: Pruebas en Flower
+### Step 3: Tests in Flower
 
-### Test 1: Ver Workers
+### Test 1: See Workers
 
-- [ ] Verificar que al menos 1 worker aparece
-- [ ] Ver pool size (4 por defecto)
-- [ ] Ver número de procesos
+- [ ] Verify at least 1 worker appears
+- [ ] See pool size (4 by default)
+- [ ] See number of processes
 
-### Test 2: Monitor de Tareas
+### Test 2: Task Monitor
 
-- [ ] Generar un documento
-- [ ] Verificar que la tarea aparece en "Tasks"
-- [ ] Ver tiempo de ejecución
-- [ ] Ver estado (pending → received → started → succeeded)
+- [ ] Generate a document
+- [ ] Verify task appears in "Tasks"
+- [ ] See execution time
+- [ ] See state (pending → received → started → succeeded)
 
-### Test 3: Estadísticas
+### Test 3: Statistics
 
-- [ ] Ir a "Stats"
-- [ ] Ver: pool.timeouts, total tasks, etc.
+- [ ] Go to "Stats"
+- [ ] See: pool.timeouts, total tasks, etc.
 
-### Test 4: Gráficos
+### Test 4: Graphs
 
-- [ ] Generar varios documentos simultáneamente
-- [ ] Ver gráfico de tareas por segundo
-- [ ] Ver gráfico de workers online
+- [ ] Generate multiple documents simultaneously
+- [ ] See spike in "Tasks/sec"
+- [ ] See workers online graph
 
 ---
 
-## 🔐 Prueba 6: Panel Administrativo
+## 🔐 Test 6: Admin Panel
 
-### Paso 1: Acceder a Django Admin
+### Step 1: Access Django Admin
 
 ```text
 http://localhost:8000/admin/
 ```
 
-**Credenciales:**
+**Credentials:**
 
-- Usuario: `admin`
-- Contraseña: `admin123` (o lo que configuraste)
+- Username: `admin`
+- Password: `admin123` (or what you configured)
 
-### Paso 2: Verificar modelos
+### Step 2: Verify models
 
-**Documentos:**
+**Documents:**
 
-- [ ] Click en "Trabajos de documentos"
-- [ ] Debe mostrar lista de DocumentJob
-- [ ] Cada item muestra: ID, tipo, estado, fecha
+- [ ] Click on "Document jobs"
+- [ ] Should show list of DocumentJob
+- [ ] Each item shows: ID, type, status, date
 
-### Paso 3: Probar filtros
+### Step 3: Test filters
 
-- [ ] Filtrar por "Estado: Completado"
-- [ ] Filtrar por "Tipo de plantilla: Contrato"
-- [ ] Filtrar por "Creado en: Hoy"
+- [ ] Filter by "Status: Completed"
+- [ ] Filter by "Template type: Contract"
+- [ ] Filter by "Created: Today"
 
-### Paso 4: Probar búsqueda
+### Step 4: Test search
 
-- [ ] Buscar por ID de trabajo
-- [ ] Buscar por nombre de plantilla
+- [ ] Search by job ID
+- [ ] Search by template name
 
-### Paso 5: Descargar desde Admin
+### Step 5: Download from Admin
 
-- [ ] Hacer clic en un trabajo completado
-- [ ] Hacer clic en el link "Ver/Descargar"
-- [ ] Verificar que se abre el PDF
+- [ ] Click on a completed job
+- [ ] Click "View/Download" link
+- [ ] Verify PDF opens
 
-### Paso 6: Acciones en lote
+### Step 6: Batch actions
 
-- [ ] Seleccionar varios trabajos fallidos
-- [ ] Hacer clic en "Reintentar trabajos fallidos"
-- [ ] Verificar que cambian a "Pendiente"
+- [ ] Select multiple failed jobs
+- [ ] Click "Retry failed jobs"
+- [ ] Verify they change to "Pending"
 
 ---
 
-## ⚙️ Prueba 7: Manejo de Errores
+## ⚙️ Test 7: Error Handling
 
-### Prueba 7a: Archivo JSON inválido
+### Test 7a: Invalid JSON file
 
 ```bash
-# Crear archivo JSON malformado
+# Create malformed JSON file
 echo '{"invalid json": }' > bad.json
 
-# Enviar
+# Send
 curl -X POST http://localhost:8000/api/documentos/upload/ \
   -F "template_name=contract" \
   -F "file=@bad.json"
 
-# Esperar respuesta de error
-# {"error": "Archivo JSON inválido: ..."}
+# Expect error response
+# {"error": "Invalid JSON file: ..."}
 ```
 
-### Prueba 7b: Plantilla no soportada
+### Test 7b: Unsupported template
 
 ```bash
 curl -X POST http://localhost:8000/api/documentos/upload/ \
   -F "template_name=invalid_type" \
   -F "file=@example_contract.json"
 
-# Esperar: "Plantilla no soportada"
+# Expect: "Unsupported template"
 ```
 
-### Prueba 7c: Campos faltantes en JSON
+### Test 7c: Missing fields in JSON
 
 ```bash
-# JSON sin campos requeridos
+# JSON without required fields
 echo '{"field1": "value1"}' > minimal.json
 
 curl -X POST http://localhost:8000/api/documentos/upload/ \
   -F "template_name=contract" \
   -F "file=@minimal.json"
 
-# Debe procesarse (con campos vacíos en el PDF)
-# O mostrar error según validación
+# Should process (with empty fields in PDF)
+# Or show error according to validation
 ```
 
-### Prueba 7d: Job ID no existe
+### Test 7d: Job ID doesn't exist
 
 ```bash
 curl http://localhost:8000/api/documentos/status/invalid-uuid/
 
-# Esperar: {"error": "Trabajo no encontrado"} (404)
+# Expect: {"error": "Job not found"} (404)
 ```
 
 ---
 
-## 🔄 Prueba 8: Reintentos y Recuperación
+## 🔄 Test 8: Retries and Recovery
 
-### Paso 1: Simular fallo
+### Step 1: Simulate failure
 
 ```bash
-# Mover plantilla temporalmente
+# Move template temporarily
 mv templates_doc/contract.html.j2 templates_doc/contract.html.j2.bak
 
-# Enviar documento
+# Send document
 curl -X POST http://localhost:8000/api/documentos/upload/ \
   -F "template_name=contract" \
   -F "file=@example_contract.json"
 
-# Esperar a que falle (status: failed)
+# Wait for it to fail (status: failed)
 ```
 
-### Paso 2: Restaurar y reintentar
+### Step 2: Restore and retry
 
 ```bash
-# Restaurar plantilla
+# Restore template
 mv templates_doc/contract.html.j2.bak templates_doc/contract.html.j2
 
-# Reintentar trabajos fallidos
+# Retry failed jobs
 poetry run python manage.py retry_failed_jobs --limit 5
 
-# Verificar que ahora esté "pending"
+# Verify it's now "pending"
 curl http://localhost:8000/api/documentos/status/<job_id>/
 ```
 
-### Paso 3: Verificar que se completa
+### Step 3: Verify completion
 
 ```bash
-# Esperar y verificar
+# Wait and verify
 curl http://localhost:8000/api/documentos/status/<job_id>/
-# Debe mostrar: "status": "completed"
+# Should show: "status": "completed"
 ```
 
 ---
 
-## 📦 Prueba 9: Con Docker
+## 📦 Test 9: With Docker
 
-### Paso 1: Construir imágenes
+### Step 1: Build images
 
 ```bash
 docker-compose build
 ```
 
-### Paso 2: Iniciar servicios
+### Step 2: Start services
 
 ```bash
 docker-compose up -d
 ```
 
-### Paso 3: Esperar a que se inicie
+### Step 3: Wait for startup
 
 ```bash
-# Ver logs
+# View logs
 docker-compose logs -f web
 
-# Esperar mensaje: "Quit the server with CONTROL-C"
+# Wait message: "Quit the server with CONTROL-C"
 ```
 
-### Paso 4: Verificar salud
+### Step 4: Verify health
 
 ```bash
 docker-compose ps
-# Todos deben estar "healthy" o "up"
+# All should be "healthy" or "up"
 ```
 
-### Paso 5: Probar endpoints
+### Step 5: Test endpoints
 
 ```bash
-# Acceder a admin
+# Access admin
 curl http://localhost:8000/admin/
-# Debe retornar HTML (200)
+# Should return HTML (200)
 
-# Generar documento
+# Generate document
 curl -X POST http://localhost:8000/api/documentos/upload/ \
   -F "template_name=contract" \
   -F "file=@example_contract.json"
 ```
 
-### Paso 6: Ver logs de worker
+### Step 6: View worker logs
 
 ```bash
 docker-compose logs worker
-# Debe mostrar procesamiento de tareas
+# Should show task processing
 ```
 
-### Paso 7: Monitoreo con Flower
+### Step 7: Monitoring with Flower
 
 ```bash
-# Acceder a http://localhost:5555
+# Access http://localhost:5555
 curl http://localhost:5555
 ```
 
 ---
 
-## 📈 Prueba 10: Carga y Estrés
+## 📈 Test 10: Load and Stress
 
-### Prueba 10a: Generar múltiples documentos
+### Test 10a: Generate multiple documents
 
 ```bash
 #!/bin/bash
 for i in {1..10}; do
-  echo "Enviando documento $i..."
+  echo "Sending document $i..."
   curl -s -X POST http://localhost:8000/api/documentos/upload/ \
     -F "template_name=contract" \
     -F "file=@example_contract.json" | jq -r '.job_id'
 done
 ```
 
-### Prueba 10b: Monitorear en Flower
+### Test 10b: Monitor in Flower
 
-- [ ] Abrir <http://localhost:5555>
-- [ ] Ver spike en "Tasks/sec"
-- [ ] Ver todos los workers procesando
-- [ ] Ver tiempo de ejecución promedio
+- [ ] Open <http://localhost:5555>
+- [ ] See spike in "Tasks/sec"
+- [ ] See all workers processing
+- [ ] See average execution time
 
-### Prueba 10c: Verificar BD
+### Test 10c: Verify DB
 
 ```bash
-# Contar documentos en BD
+# Count documents in DB
 poetry run python manage.py shell
 >>> from documentos.models import DocumentJob
 >>> DocumentJob.objects.count()
-# Debe ser >= 10
+# Should be >= 10
 ```
 
 ---
 
-## 🧹 Limpieza Post-Pruebas
+## 🧹 Post-Test Cleanup
 
 ```bash
-# Detener Docker
+# Stop Docker
 docker-compose down
 
-# Eliminar archivos generados
+# Delete generated files
 rm -rf generated/*
 rm -rf uploads/*
 
-# Limpiar Redis
+# Clean Redis
 redis-cli FLUSHALL
 
-# Limpiar BD (CUIDADO - borra todo)
+# Clean DB (WARNING - deletes all)
 poetry run python manage.py flush --no-input
 
-# Reinicializar
+# Reinitialize
 poetry run python manage.py migrate
 poetry run python manage.py createsuperuser
 ```
 
 ---
 
-## 📝 Checklist de Funcionalidades Probadas
+## 📝 Features Tested Checklist
 
-**Desarrollo:**
+**Development:**
 
-- [ ] Django runserver funciona
-- [ ] Admin panel accesible
-- [ ] BD migrada correctamente
+- [ ] Django runserver works
+- [ ] Admin panel accessible
+- [ ] DB migrated correctly
 
 **Celery:**
 
-- [ ] Redis funciona
-- [ ] Worker inicia sin errores
-- [ ] Tarea de debug ejecuta exitosamente
+- [ ] Redis works
+- [ ] Worker starts without errors
+- [ ] Debug task executes successfully
 
 **API:**
 
-- [ ] POST /upload/ con archivo
-- [ ] GET /status/ retorna estado
-- [ ] GET /download/ descarga PDF
-- [ ] GET /jobs/ lista trabajos
+- [ ] POST /upload/ with file
+- [ ] GET /status/ returns status
+- [ ] GET /download/ downloads PDF
+- [ ] GET /jobs/ lists jobs
 
 **Web:**
 
-- [ ] Upload.html carga
-- [ ] Drag & drop funciona
-- [ ] Forma valida inputs
-- [ ] Spinner muestra durante generación
-- [ ] Botón descargar aparece cuando completa
+- [ ] Upload.html loads
+- [ ] Drag & drop works
+- [ ] Form validates inputs
+- [ ] Spinner shows during generation
+- [ ] Download button appears when complete
 
-**Documentos:**
+**Documents:**
 
-- [ ] PDF se genera correctamente
-- [ ] Plantilla Jinja2 renderiza datos
-- [ ] Archivo se guarda en disco
+- [ ] PDF generates correctly
+- [ ] Jinja2 template renders data
+- [ ] File saves to disk
 
 **Admin:**
 
-- [ ] Login funciona
-- [ ] Listar trabajos
-- [ ] Filtrar por estado
-- [ ] Buscar por ID
-- [ ] Descargar PDF desde admin
-- [ ] Reintentar trabajos fallidos
+- [ ] Login works
+- [ ] List jobs
+- [ ] Filter by status
+- [ ] Search by ID
+- [ ] Download PDF from admin
+- [ ] Retry failed jobs
 
-**Monitoreo:**
+**Monitoring:**
 
-- [ ] Flower muestra workers
-- [ ] Flower muestra tareas
-- [ ] Flower muestra estadísticas
-- [ ] Gráficos se actualizan
+- [ ] Flower shows workers
+- [ ] Flower shows tasks
+- [ ] Flower shows statistics
+- [ ] Graphs update
 
 **Docker:**
 
-- [ ] docker-compose up inicia todo
-- [ ] Servicios pasan healthcheck
-- [ ] API funciona desde contenedores
-- [ ] Volúmenes persisten datos
+- [ ] docker-compose up starts everything
+- [ ] Services pass healthcheck
+- [ ] API works from containers
+- [ ] Volumes persist data
 
 ---
 
-## 📊 Comandos Útiles de Testing
+## 📊 Useful Testing Commands
 
 ```bash
-# Ver logs en tiempo real
+# View logs in real time
 docker-compose logs -f web
 docker-compose logs -f worker
 docker-compose logs -f
 
-# Ejecutar comando en contenedor
+# Run command in container
 docker-compose exec web python manage.py shell
 docker-compose exec worker celery -A project inspect active
 
-# Abrir bash en contenedor
+# Open bash in container
 docker-compose exec web bash
 
-# Inspeccionar tareas Celery
+# Inspect Celery tasks
 celery -A project inspect active
 celery -A project inspect stats
 celery -A project inspect revoked
 
-# Listar tareas registradas
+# List registered tasks
 celery -A project inspect registered
 
-# Monitorear en tiempo real
+# Monitor in real time
 watch 'curl -s http://localhost:8000/api/documentos/jobs/ | jq'
 ```
 
 ---
 
-**Última actualización:** Enero 2025
+**Last updated:** January 2025

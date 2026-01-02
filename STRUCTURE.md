@@ -1,118 +1,117 @@
-# 📂 Estructura Completa del Proyecto
+# 📂 Complete Project Structure
 
-Mapa completo del proyecto Template Filler con descripciones de cada archivo.
+Complete map of Template Filler project with descriptions of each file.
 
 ---
 
-## Directorio Raíz
+## Root Directory
 
 ```text
 template_filler/
-├── README.md                    # Documentación principal completa
-├── QUICKSTART.md               # Guía rápida para empezar
-├── TESTING.md                  # Guía exhaustiva de pruebas
-├── ADVANCED.md                 # Configuraciones avanzadas
-├── .env.example                # Variables de entorno ejemplo
-├── .gitignore                  # Archivos a ignorar en Git
-├── Dockerfile                  # Imagen Docker para la aplicación
-├── docker-compose.yml          # Orquestación de servicios Docker
-├── manage.py                   # CLI de Django
-├── wsgi.py                     # Entry point WSGI
-├── pyproject.toml              # Dependencias Poetry
-├── poetry.lock                 # Lock de versiones exactas
-├── .editorconfig               # Configuración del editor
+├── README.md                    # Complete main documentation
+├── QUICKSTART.md               # Quick start guide
+├── TESTING.md                  # Comprehensive testing guide
+├── .env.example                # Environment variables example
+├── .gitignore                  # Files to ignore in Git
+├── Dockerfile                  # Docker image for application
+├── docker-compose.yml          # Docker services orchestration
+├── manage.py                   # Django CLI
+├── wsgi.py                     # WSGI entry point
+├── pyproject.toml              # Poetry dependencies
+├── poetry.lock                 # Exact version lock
+├── .editorconfig               # Editor configuration
 ```
 
 ---
 
-## Directorio `project/` (Configuración Django)
+## `project/` Directory (Django Configuration)
 
 ```text
 project/
-├── __init__.py                 # Inicializa Celery al cargar Django
-├── settings.py                 # Configuración completa (CRÍTICO)
-│   ├── Base dir y paths
+├── __init__.py                 # Initializes Celery when Django loads
+├── settings.py                 # Complete configuration (CRITICAL)
+│   ├── Base dir and paths
 │   ├── SECRET_KEY, DEBUG, ALLOWED_HOSTS
-│   ├── Aplicaciones instaladas
+│   ├── Installed applications
 │   ├── Middleware
 │   ├── DATABASES (PostgreSQL)
 │   ├── TEMPLATES
 │   ├── Password validators
-│   ├── Internationalización
-│   ├── Static files y Media
-│   ├── CELERY_* (Configuración completa de Celery)
+│   ├── Internationalization
+│   ├── Static files and Media
+│   ├── CELERY_* (Complete Celery configuration)
 │   ├── CORS_ALLOWED_ORIGINS
 │   └── LOGGING
-├── urls.py                     # Rutas raíz del proyecto
+├── urls.py                     # Project root routes
 │   ├── /admin/ → Django Admin
-│   └── /api/documentos/ → Rutas de app documentos
-├── wsgi.py                     # Entry point para Gunicorn/producción
-├── asgi.py                     # Entry point para Daphne/WebSockets
-└── celery.py                   # Configuración de Celery (CRÍTICO)
-    ├── Inicializa app de Celery
-    ├── Carga config desde settings
-    ├── Auto-descubre tareas
-    └── Define tarea de debug
+│   └── /api/docs/ → docs app routes
+├── wsgi.py                     # Entry point for Gunicorn/production
+├── asgi.py                     # Entry point for Daphne/WebSockets
+└── celery.py                   # Celery configuration (CRITICAL)
+    ├── Initializes Celery app
+    ├── Loads config from settings
+    ├── Auto-discovers tasks
+    └── Defines debug task
 ```
 
 ---
 
-## Directorio `documentos/` (Aplicación Principal)
+## `docs/` Directory (Main Application)
 
-### Modelos
+### Models
 
 ```text
-documentos/models.py
-├── DocumentJob (Modelo principal)
+docs/models.py
+├── DocumentJob (Main model)
 │   ├── id: UUIDField (primary key)
-│   ├── celery_task_id: CharField (tracking de Celery)
+│   ├── celery_task_id: CharField (Celery tracking)
 │   ├── template_name: ChoiceField (contract/invoice/certificate)
-│   ├── input_file: FileField (JSON subido)
-│   ├── output_file: FileField (PDF generado)
+│   ├── input_file: FileField (uploaded JSON)
+│   ├── output_file: FileField (generated PDF)
 │   ├── status: ChoiceField (pending/running/completed/failed)
 │   ├── error_message: TextField
 │   ├── created_at, updated_at, started_at, completed_at: DateTimeField
-│   ├── input_data: JSONField (datos para plantilla)
-│   └── Métodos helper (is_completed, mark_running, etc)
+│   ├── input_data: JSONField (template data)
+│   └── Helper methods (is_completed, mark_running, etc)
 ```
 
-### Vistas
+### Views
 
 ```text
-documentos/views.py
+docs/views.py
 ├── UploadView(View)
-│   ├── GET: Renderiza formulario upload.html
-│   └── POST: Procesa archivo JSON y crea DocumentJob
+│   ├── GET: Renders upload form upload.html
+│   └── POST: Processes JSON file and creates DocumentJob
 ├── StatusView(View)
-│   └── GET: Retorna estado del trabajo en JSON
+│   └── GET: Returns job status as JSON
 ├── DownloadView(View)
-│   └── GET: Descarga archivo PDF generado
+│   └── GET: Downloads generated PDF file
 └── ListJobsView(View)
-    └── GET: Lista trabajos con filtros (para debugging)
+    └── GET: Lists jobs with filters (for debugging)
 ```
 
-### Tareas Celery
+### Celery Tasks
 
 ```text
-documentos/tasks.py
+docs/tasks.py
 ├── generate_pdf_task(job_id)
-│   ├── Obtiene job de BD
-│   ├── Renderiza plantilla Jinja2
-│   ├── Convierte HTML → PDF con WeasyPrint
-│   └── Guarda en output_file
+│   ├── Gets job from DB
+│   ├── Renders Jinja2 template
+│   ├── Converts HTML → PDF with WeasyPrint
+│   └── Saves to output_file
 ├── generate_docx_task(job_id)
-│   ├── Similar pero genera DOCX
+│   ├── Similar but generates DOCX
 ├── generate_json_task(job_id)
-│   ├── Genera JSON con datos procesados
+│   ├── Generates JSON with processed data
 ├── _render_template(template_name, context)
 ├── _html_to_pdf(html_content)
 └── _process_data(data)
 ```
 
-### Servicios (Lógica de Negocio)
+### Services (Business Logic)
 
 ```text
-documentos/services.py
+docs/services.py
 ├── DocumentService
 │   ├── create_job(template_name, input_data, input_file)
 │   ├── send_to_celery(job)
@@ -125,153 +124,153 @@ documentos/services.py
 ### URLs
 
 ```text
-documentos/urls.py
+docs/urls.py
 ├── /upload/               → UploadView (GET/POST)
 ├── /status/<uuid>/        → StatusView (GET)
 ├── /download/<uuid>/      → DownloadView (GET)
-└── /jobs/                 → ListJobsView (GET, para debugging)
+└── /jobs/                 → ListJobsView (GET, for debugging)
 ```
 
 ### Admin
 
 ```text
-documentos/admin.py
+docs/admin.py
 ├── DocumentJobAdmin
-│   ├── list_display: ID, tipo, estado, fecha, botón descarga
-│   ├── list_filter: estado, tipo, fecha
-│   ├── search_fields: ID, tipo, mensaje error
-│   ├── readonly_fields: (campos de solo lectura)
-│   ├── fieldsets: Organización visual
+│   ├── list_display: ID, type, status, date, download button
+│   ├── list_filter: status, type, date
+│   ├── search_fields: ID, type, error message
+│   ├── readonly_fields: (read-only fields)
+│   ├── fieldsets: Visual organization
 │   ├── actions: retry_failed_jobs, mark_as_pending
-│   └── Colores y badges personalizados
+│   └── Custom colors and badges
 ```
 
-### Templates HTML
+### HTML Templates
 
 ```text
-documentos/templates/documentos/upload.html
-├── <header> con título y descripción
+docs/templates/docs/upload.html
+├── <header> with title and description
 ├── <form id="uploadForm">
-│   ├── select#templateSelect (dropdown de plantillas)
-│   ├── .drag-drop-zone (zona de arrastrar)
-│   ├── input#hiddenFileInput (file input oculto)
-│   └── buttons (submit y reset)
-├── #statusContainer (para mostrar estado y resultado)
-├── <style> completo e integrado
-└── <script> JavaScript vanilla (sin librerías externas)
+│   ├── select#templateSelect (template dropdown)
+│   ├── .drag-drop-zone (drag zone)
+│   ├── input#hiddenFileInput (hidden file input)
+│   └── buttons (submit and reset)
+├── #statusContainer (status and result display)
+├── <style> complete integrated CSS
+└── <script> vanilla JavaScript (no external libraries)
     ├── Drag & drop handlers
     ├── Form submission
-    ├── Polling del estado
+    ├── Status polling
     └── Download management
 ```
 
 ### Migrations
 
 ```text
-documentos/migrations/
+docs/migrations/
 ├── __init__.py
-└── 0001_initial.py          # Se crea automáticamente con makemigrations
-    └── Crea tabla documentos_documentjob
+└── 0001_initial.py          # Auto-created with makemigrations
+    └── Creates docs_documentjob table
 ```
 
 ### Management Commands
 
 ```text
-documentos/management/commands/retry_failed_jobs.py
-├── Comando: python manage.py retry_failed_jobs
-├── Opciones:
+docs/management/commands/retry_failed_jobs.py
+├── Command: python manage.py retry_failed_jobs
+├── Options:
 │   ├── --limit (default: 10)
 │   └── --hours (default: 24)
-└── Reintentar trabajos fallidos reseteando a "pending"
+└── Retry failed jobs by resetting to "pending"
 ```
 
-### Otros
+### Other
 
 ```text
-documentos/
-├── __init__.py              # Marcador de paquete
-├── apps.py                  # Configuración de app
-└── admin.py                 # Registro en admin
+docs/
+├── __init__.py              # Package marker
+├── apps.py                  # App configuration
+└── admin.py                 # Admin registration
 ```
 
 ---
 
-## Directorio `templates_doc/` (Plantillas Jinja2)
+## `templates_doc/` Directory (Jinja2 Templates)
 
-### Estructura de Archivos
+### File Structure
 
 ```text
 templates_doc/
 ├── contract.html.j2
-│   ├── HTML5 con DOCTYPE
-│   ├── <head> con <style> CSS completo
-│   ├── Secciones:
-│   │   ├── Header (título, fecha)
-│   │   ├── Partes contratantes
-│   │   ├── Objeto del contrato
-│   │   ├── Duración
-│   │   ├── Condiciones económicas (tabla)
-│   │   ├── Términos y condiciones
-│   │   └── Firmas
-│   ├── Variables Jinja2:
+│   ├── HTML5 with DOCTYPE
+│   ├── <head> with complete <style> CSS
+│   ├── Sections:
+│   │   ├── Header (title, date)
+│   │   ├── Contracting parties
+│   │   ├── Contract object
+│   │   ├── Duration
+│   │   ├── Economic conditions (table)
+│   │   ├── Terms and conditions
+│   │   └── Signatures
+│   ├── Jinja2 variables:
 │   │   ├── {{ contracting_party_name }}
 │   │   ├── {{ contractor_name }}
 │   │   ├── {{ services }} (loop for)
 │   │   ├── {{ total_amount }}
-│   │   └── ... más de 15 variables
-│   └── {% if %}, {% for %} para lógica
+│   │   └── ... 15+ variables
+│   └── {% if %}, {% for %} for logic
 │
 ├── invoice.html.j2
-│   ├── Estructura:
-│   │   ├── Header (empresa, número, fecha)
-│   │   ├── Información de facturación
-│   │   ├── Información de pago (banco, IBAN)
-│   │   ├── Tabla de items (cantidad, precio, subtotal)
-│   │   ├── Totales (subtotal, descuento, IVA, total)
-│   │   └── Notas
+│   ├── Structure:
+│   │   ├── Header (company, number, date)
+│   │   ├── Billing information
+│   │   ├── Payment information (bank, IBAN)
+│   │   ├── Items table (quantity, price, subtotal)
+│   │   ├── Totals (subtotal, discount, VAT, total)
+│   │   └── Notes
 │   ├── Variables: company_*, customer_*, items[], totals, etc
-│   └── Estilos profesionales con colores corporativos
+│   └── Professional styles with corporate colors
 │
 └── certificate.html.j2
-    ├── Diseño elegante tipo certificado
-    ├── Elementos:
-    │   ├── Header con institución
-    │   ├── Título "CERTIFICADO"
-    │   ├── Destinatario
-    │   ├── Logro/Texto de certificación
-    │   ├── Detalles (curso, duración, fecha)
-    │   ├── Firmas de autorizantes
-    │   └── Sello/Validación
+    ├── Elegant certificate-style design
+    ├── Elements:
+    │   ├── Header with institution
+    │   ├── "CERTIFICATE" title
+    │   ├── Recipient
+    │   ├── Achievement/certification text
+    │   ├── Details (course, duration, date)
+    │   ├── Authorizer signatures
+    │   └── Seal/Validation
     ├── Variables: recipient_name, achievement_text, signatures, etc
-    └── Estilos premium (oro, gradientes, fuentes serif)
+    └── Premium styles (gold, gradients, serif fonts)
 ```
 
-### Cómo Funcionan las Plantillas
+### How Templates Work
 
-1. Usuario sube JSON con datos
-2. `_render_template()` carga archivo `.j2`
-3. Jinja2 renderiza con `template.render(**context)`
-4. HTML resultado se convierte a PDF
-5. PDF se guarda en BD
+1. User uploads JSON with data
+2. `_render_template()` loads `.j2` file
+3. Jinja2 renders with `template.render(**context)`
+4. Resulting HTML is converted to PDF
+5. PDF is saved in DB
 
-### Ejemplo de Uso
+### Usage Example
 
 ```python
-# Datos JSON de entrada
+# Input JSON data
 data = {
     "contracting_party_name": "ABC Inc",
-    "contractor_name": "Juan Pérez",
+    "contractor_name": "John Doe",
     ...
 }
 
-# Jinja2 renderiza
+# Jinja2 renders
 template.render(**data)
-# Genera HTML con valores reales
+# Generates HTML with actual values
 ```
 
 ---
 
-## Directorios de Datos (Generados en Runtime)
+## Data Directories (Generated at Runtime)
 
 ```text
 generated/
@@ -290,120 +289,120 @@ uploads/
 │   │   │   └── ...
 
 media/
-├── (archivos multimedia de usuarios)
+├── (user multimedia files)
 
 staticfiles/
 ├── admin/
 │   ├── css/
 │   ├── js/
 │   └── img/
-└── (CSS y JS de aplicación)
+└── (application CSS and JS)
 ```
 
 ---
 
-## Ejemplos de Datos
+## Example Data Files
 
 ```text
 example_contract.json
-├── Datos completos para generar contrato
-├── Incluye:
-│   ├── Datos de partes
-│   ├── Servicios con precios
-│   ├── Términos y condiciones
-│   └── Toda la información requerida
-└── ~70 líneas de JSON bien formado
+├── Complete data to generate contract
+├── Includes:
+│   ├── Party data
+│   ├── Services with prices
+│   ├── Terms and conditions
+│   └── All required information
+└── ~70 lines of well-formed JSON
 
 example_invoice.json
-├── Datos para factura
-├── Incluye:
-│   ├── Información de empresa y cliente
-│   ├── Detalles de productos/servicios
-│   ├── Cálculos (subtotal, descuentos, impuestos)
-│   └── Información de pago
-└── ~60 líneas
+├── Data for invoice
+├── Includes:
+│   ├── Company and customer information
+│   ├── Product/service details
+│   ├── Calculations (subtotal, discounts, taxes)
+│   └── Payment information
+└── ~60 lines
 
 example_certificate.json
-├── Datos para certificado
-├── Incluye:
-│   ├── Nombre del beneficiario
-│   ├── Logro y descripción
-│   ├── Curso/programa
-│   ├── Firmas autorizadas
-│   └── Fechas
-└── ~20 líneas (más compacto)
+├── Data for certificate
+├── Includes:
+│   ├── Beneficiary name
+│   ├── Achievement and description
+│   ├── Course/program
+│   ├── Authorized signatures
+│   └── Dates
+└── ~20 lines (more compact)
 ```
 
 ---
 
-## Archivos de Configuración Docker
+## Docker Configuration Files
 
 ```text
-docker-compose.yml (orquestación completa)
+docker-compose.yml (complete orchestration)
 ├── services:
 │   ├── db (PostgreSQL 17)
-│   │   ├── Imagen: bitnami/postgresql:17
-│   │   ├── Volúmenes persistentes
+│   │   ├── Image: bitnami/postgresql:17
+│   │   ├── Persistent volumes
 │   │   ├── Health checks
-│   │   └── Variables de entorno
+│   │   └── Environment variables
 │   ├── redis (Redis 7)
-│   │   ├── Imagen: bitnami/redis:7
-│   │   ├── Puertos
+│   │   ├── Image: bitnami/redis:7
+│   │   ├── Ports
 │   │   └── Health checks
 │   ├── web (Django + Gunicorn)
 │   │   ├── Build: Dockerfile
-│   │   ├── Comando: Migrations + Collectstatic + Gunicorn
-│   │   ├── Dependencias con health checks
-│   │   ├── Volúmenes: código, generated, uploads, media, static
-│   │   └── Puerto 8000
+│   │   ├── Command: Migrations + Collectstatic + Gunicorn
+│   │   ├── Dependencies with health checks
+│   │   ├── Volumes: code, generated, uploads, media, static
+│   │   └── Port 8000
 │   ├── worker (Celery Worker)
-│   │   ├── 4 workers de concurrencia
-│   │   ├── Colas: default, documents
-│   │   └── Reintentos automáticos
+│   │   ├── 4 worker concurrency
+│   │   ├── Queues: default, documents
+│   │   └── Automatic retries
 │   └── flower (Monitor Celery)
-│       ├── Puerto 5555
-│       └── Dashboard en tiempo real
-└── volumes: Volúmenes nombrados persistentes
+│       ├── Port 5555
+│       └── Real-time dashboard
+└── volumes: Named persistent volumes
 
 Dockerfile
 ├── FROM python:3.12-slim
-├── Instalar dependencias del sistema (WeasyPrint)
-├── Instalar Poetry
-├── Instalar dependencias Python
-├── Crear directorios
-├── Exponer puerto 8000
+├── Install system dependencies (WeasyPrint)
+├── Install Poetry
+├── Install Python dependencies
+├── Create directories
+├── Expose port 8000
 ├── Health check
 └── CMD: Gunicorn
 ```
 
 ---
 
-## Archivos de Configuración Project
+## Project Configuration Files
 
 ```text
-pyproject.toml (gestión de dependencias)
+pyproject.toml (dependency management)
 ├── [project]
 │   ├── name = "template-filler"
 │   ├── version = "0.1.0"
 │   └── dependencies = [...]
 ├── django (6.0+)
 ├── celery (5.6+)
-├── weasyprint (para PDF)
-├── python-decouple (variables de entorno)
+├── weasyprint (for PDF)
+├── python-decouple (environment variables)
 ├── psycopg2-binary (PostgreSQL)
-├── gunicorn (servidor WSGI)
+├── gunicorn (WSGI server)
 ├── docxtpl (DOCX)
 ├── django-cors-headers
-├── pillow (imágenes)
-├── jinja2 (plantillas)
+├── pillow (images)
+├── jinja2 (templates)
 └── [build-system]
 
-.env.example (template de variables)
+.env.example (variables template)
 ├── DEBUG, SECRET_KEY
 ├── DATABASE_* (PostgreSQL)
-├── CELERY_* (Redis, colas)
+├── CELERY_* (Redis, queues)
 ├── DJANGO_SUPERUSER_*
-└── EMAIL_* (opcional)
+└── EMAIL_* (optional)
 
 .gitignore
 ├── __pycache__/
@@ -420,10 +419,10 @@ pyproject.toml (gestión de dependencias)
 
 ---
 
-## Diagrama de Flujo de Archivos
+## File Flow Diagram
 
 ```text
-Usuario carga JSON
+User loads JSON
         ↓
     upload.html (frontend)
         ↓
@@ -431,57 +430,57 @@ Usuario carga JSON
         ↓
     DocumentService.create_job() (services.py)
         ↓
-    DocumentJob guardado en BD (models.py)
+    DocumentJob saved in DB (models.py)
         ↓
     DocumentService.send_to_celery() (services.py)
         ↓
-    Tarea en Redis (broker)
+    Task in Redis (broker)
         ↓
-    Worker recibe tarea (Celery worker)
+    Worker receives task (Celery worker)
         ↓
     generate_pdf_task() (tasks.py)
-        ├─ Carga template (templates_doc/contract.html.j2)
-        ├─ Renderiza con Jinja2
-        ├─ Convierte a PDF con WeasyPrint
-        └─ Guarda en output_file
+        ├─ Load template (templates_doc/contract.html.j2)
+        ├─ Render with Jinja2
+        ├─ Convert to PDF with WeasyPrint
+        └─ Save to output_file
         ↓
     DocumentJob.status = "completed"
         ↓
-    Usuario verifica StatusView
+    User checks StatusView
         ↓
-    Usuario descarga en DownloadView
+    User downloads in DownloadView
         ↓
-    PDF servido desde media/generated/
+    PDF served from media/generated/
 ```
 
 ---
 
-## Referencias Rápidas
+## Quick References
 
-### Para Agregar Nueva Plantilla
+### To Add New Template
 
-1. Crear `templates_doc/new_template.html.j2`
-2. Agregar en `settings.py` SUPPORTED_DOCUMENT_TYPES
-3. Crear JSON ejemplo `example_new_template.json`
-4. Ya está disponible en API
+1. Create `templates_doc/new_template.html.j2`
+2. Add to `settings.py` SUPPORTED_DOCUMENT_TYPES
+3. Create JSON example `example_new_template.json`
+4. Already available in API
 
-### Para Crear Nueva Tarea
+### To Create New Task
 
-1. Crear función en `documentos/tasks.py`
-2. Decorar con `@shared_task`
-3. Registrar ruta en `settings.py` CELERY_TASK_ROUTES (opcional)
-4. Llamar desde servicio con `task.apply_async()`
+1. Create function in `docs/tasks.py`
+2. Decorate with `@shared_task`
+3. Register route in `settings.py` CELERY_TASK_ROUTES (optional)
+4. Call from service with `task.apply_async()`
 
-### Para Personalizar Admin
+### To Customize Admin
 
-Editar `documentos/admin.py`:
+Edit `docs/admin.py`:
 
-- `list_display` para columnas
-- `list_filter` para filtros
-- `search_fields` para búsqueda
-- `actions` para acciones en lote
+- `list_display` for columns
+- `list_filter` for filters
+- `search_fields` for search
+- `actions` for batch actions
 
 ---
 
-**Última actualización:** Enero 2025  
-**Versión:** 1.0.0
+**Last updated:** January 2025  
+**Version:** 1.0.0

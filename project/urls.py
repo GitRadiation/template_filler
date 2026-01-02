@@ -1,5 +1,5 @@
 """
-URLs del proyecto Template Filler.
+URLs from project Template Filler.
 """
 
 from django.conf import settings
@@ -9,12 +9,12 @@ from django.urls import include, path
 from django.views.generic import RedirectView
 
 urlpatterns = [
-    path('', RedirectView.as_view(url='api/documentos/upload/', permanent=False), name='home'),
+    path('', RedirectView.as_view(url='api/docs/upload/', permanent=False), name='home'),
     path('admin/', admin.site.urls),
-    path('api/documentos/', include('documentos.urls')),
+    path('api/docs/', include('docs.urls')),
 ]
 
-# Servir archivos de media en desarrollo
+# Serve media files during development
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
     urlpatterns += static('/generated/', document_root=settings.GENERATED_DOCUMENTS_DIR)
