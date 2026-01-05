@@ -90,7 +90,7 @@ db.sqlite3
 /staticfiles/
 /static/
 *.pdf
-*.docx
+*.docx#
 *.xlsx
 
 # Django migrations (pero mantener 0001_initial.py)

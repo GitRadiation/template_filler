@@ -16,6 +16,7 @@ from typing import Any, NoReturn
 from celery import shared_task
 from django.conf import settings
 from django.utils import timezone
+from docxtpl import DocxTemplate
 from jinja2 import Environment, FileSystemLoader, TemplateNotFound
 from weasyprint import HTML
 
@@ -96,15 +97,6 @@ def generate_pdf_task(self, job_id: str) -> dict[str, Any]:
 
 @shared_task(bind=True, max_retries=3)
 def generate_docx_task(self, job_id: str) -> dict[str, Any]:
-    """
-    Generate a DOCX document using a Word template.
-
-    Args:
-        job_id: UUID of the DocumentJob
-
-    Returns:
-        Result metadata dictionary
-    """
     job = _get_job_or_fail(job_id)
     if not job:
         return {'status': 'error', 'message': 'Job not found'}
@@ -113,23 +105,23 @@ def generate_docx_task(self, job_id: str) -> dict[str, Any]:
         job.mark_running()
         logger.info('Starting DOCX generation (job_id=%s)', job_id)
 
-        from docxtpl import DocxTemplate
-
         template_path = settings.TEMPLATES_DOC_DIR / f'{job.template_name}.docx'
         if not template_path.exists():
             raise FileNotFoundError(f'DOCX template not found: {template_path}')
 
         doc = DocxTemplate(str(template_path))
-        doc.render(job.input_data or {})
+        doc.render(job.input_data or {}, autoescape=True)
 
+        # Guardamos directamente en memoria
         buffer = BytesIO()
         doc.save(buffer)
         buffer.seek(0)
-
+        docx_bytes = buffer.read()
+        buffer.close() 
         DocumentService.save_output_file(
             job,
-            buffer.getvalue(),
-            file_name=f'{job.id}.docx',
+            docx_bytes,
+            file_name=f'{job.id}.docx'
         )
 
         job.mark_completed()
@@ -139,7 +131,6 @@ def generate_docx_task(self, job_id: str) -> dict[str, Any]:
 
     except Exception as exc:
         _handle_task_failure(self, job, exc)
-
 
 # ============================================================================
 # JSON task
@@ -200,7 +191,7 @@ def generate_json_task(self, job_id: str) -> dict[str, Any]:
 
 def _render_template(template_name: str, context: dict) -> str:
     """
-    Render a Jinja2 HTML template.
+    Render a template.
 
     Args:
         template_name: Template base name (without extension)
@@ -222,7 +213,7 @@ def _render_template(template_name: str, context: dict) -> str:
         'today': datetime.today(),
     }
 
-    template_file = f'{template_name}.html.j2'
+    template_file = f'{template_name}'
 
     try:
         template = env.get_template(template_file)

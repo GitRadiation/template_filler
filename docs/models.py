@@ -38,6 +38,13 @@ class DocumentJob(models.Model):
         editable=False,
         verbose_name=_('Unique ID'),
     )
+    file_name = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True,
+        verbose_name=_('File name'),
+        help_text=_('Original name of the uploaded JSON file')
+    )
 
     celery_task_id = models.CharField(
         max_length=255,

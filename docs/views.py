@@ -13,6 +13,7 @@ import logging
 from django.conf import settings
 from django.http import FileResponse, JsonResponse
 from django.shortcuts import get_object_or_404, render
+from django.urls import reverse
 from django.utils.decorators import method_decorator
 from django.views import View
 from django.views.decorators.csrf import csrf_exempt
@@ -21,6 +22,8 @@ from .models import DocumentJob
 from .services import DocumentService
 
 logger = logging.getLogger(__name__)
+
+
 
 
 class UploadView(View):
@@ -33,8 +36,12 @@ class UploadView(View):
     
     def get(self, request):
         """Shows the upload form with Drag&Drop."""
+        # Use Django's URL reversing to build a language-aware API prefix
+        api_upload = reverse('documentos:upload')
+        api_prefix = api_upload.rsplit('upload/', 1)[0]  # keeps trailing slash
         return render(request, 'docs/upload.html', {
             'templates': settings.SUPPORTED_DOCUMENT_TYPES.keys(),
+            'api_prefix': api_prefix,
         })
     
     @method_decorator(csrf_exempt)
@@ -143,7 +150,6 @@ class StatusView(View):
                 'error': str(e)
             }, status=500)
 
-
 class DownloadView(View):
     """
     View to download the generated document.
@@ -175,12 +181,25 @@ class DownloadView(View):
                 return JsonResponse({
                     'error': 'Archivo de salida no encontrado'
                 }, status=404)
+
+            # Determine file type and content type
+            template_name = job.template_name.lower()
+            if 'docx' in template_name:
+                content_type = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+                extension = 'docx'
+            else:
+                # Assume HTML/Jinja2 → PDF
+                content_type = 'application/pdf'
+                extension = 'pdf'
             
-            # Download the file
-            response = FileResponse(job.output_file.open('rb'))
-            response['Content-Disposition'] = f'attachment; filename="{job.id}.pdf"'
+            # Set filename based on job file name or job id
+            filename = f"{job.file_name or job.id}.{extension}"
             
-            logger.info(f'Documento descargado: {job_id}')
+            # Return file as attachment
+            response = FileResponse(job.output_file.open('rb'), content_type=content_type)
+            response['Content-Disposition'] = f'attachment; filename="{filename}"'
+            
+            logger.info(f'Documento descargado: {job_id} ({filename})')
             return response
         
         except DocumentJob.DoesNotExist:
@@ -193,7 +212,6 @@ class DownloadView(View):
             return JsonResponse({
                 'error': str(e)
             }, status=500)
-
 
 class ListJobsView(View):
     """

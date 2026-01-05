@@ -228,6 +228,7 @@ SUPPORTED_DOCUMENT_TYPES = {
     'contract': 'contract.html.j2',
     'invoice': 'invoice.html.j2',
     'certificate': 'certificate.html.j2',
+    "docx_contract": "contract.docx",
 }
 
 # Configuración de WeasyPrint
@@ -272,3 +273,5 @@ LOGGING = {
 }
 
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+FILE_UPLOAD_PERMISSIONS = 0o644
+FILE_UPLOAD_DIRECTORY_PERMISSIONS = 0o755

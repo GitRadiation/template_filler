@@ -9,8 +9,8 @@ Provides high-level operations for document generation, including:
 """
 
 import logging
-from typing import Any
 
+from django.conf import settings
 from django.core.files.base import ContentFile
 
 from .models import DocumentJob
@@ -73,24 +73,34 @@ class DocumentService:
     # =========================
     @staticmethod
     def send_to_celery(job: DocumentJob) -> None:
-        """
-        Submit a document job to Celery for asynchronous processing.
+        """Send the job to the correct Celery task based on the template file extension.
 
-        Args:
-            job: DocumentJob instance to process
+        This inspects SETTINGS.SUPPORTED_DOCUMENT_TYPES to find the actual
+        template filename (e.g. 'contract.html.j2' or 'contract.docx') and
+        chooses the appropriate task: docx -> generate_docx_task, json ->
+        generate_json_task, else -> generate_pdf_task.
         """
-        from docs.tasks import generate_pdf_task
+        template_file = None
+        try:
+            template_file = job.template_name and settings.SUPPORTED_DOCUMENT_TYPES.get(job.template_name)
+        except Exception:
+            template_file = None
 
-        task: Any = generate_pdf_task.apply_async((str(job.id),)) # type: ignore
+        # Fallback to using the template name as filename
+        filename = template_file if template_file else job.template_name
+        ext = (filename.split('.')[-1].lower() if filename and '.' in filename else '')
+
+        from docs.tasks import generate_docx_task, generate_json_task, generate_pdf_task
+
+        if ext == 'docx':
+            task = generate_docx_task.apply_async((str(job.id),))  # type: ignore
+        elif ext == 'json':
+            task = generate_json_task.apply_async((str(job.id),))  # type: ignore
+        else:
+            task = generate_pdf_task.apply_async((str(job.id),))  # type: ignore
 
         job.celery_task_id = task.id
         job.save(update_fields=['celery_task_id'])
-
-        logger.info(
-            'Celery task submitted: task_id=%s job_id=%s',
-            task.id,
-            job.id,
-        )
 
     # =========================
     # Status & retrieval
